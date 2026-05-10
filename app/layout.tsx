@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { UserMenu } from "@/components/auth/user-menu";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -68,6 +69,7 @@ export default function RootLayout({
           </nav>
           <main className="flex-1 relative z-10">{children}</main>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
