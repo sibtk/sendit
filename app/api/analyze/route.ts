@@ -7,6 +7,8 @@ import { calculateAuctionFees } from "@/lib/fees";
 import { estimateShipping } from "@/lib/shipping";
 import { analyzeVehicle } from "@/lib/claude";
 import { AnalyzeRequest, FullAnalysis, VinDecode } from "@/lib/types";
+import { getPriceData, queueScrape } from "@/lib/vehicle-db";
+import { getAuctionComps } from "@/lib/auction-comps";
 import { randomUUID } from "crypto";
 
 export const maxDuration = 60; // Allow up to 60s for the full pipeline
@@ -118,7 +120,60 @@ export async function POST(request: NextRequest) {
         : noShipNote;
     }
 
-    // Step 7: Analyze with Claude (the AI part)
+    // Step 7: Check vehicle price database for real market data
+    const vehicleMake = vinDecode?.make || listing.make;
+    const vehicleModel = vinDecode?.model || listing.model;
+    const vehicleYear = vinDecode?.year || listing.year;
+    const vehicleTrim = vinDecode?.trim || listing.trim;
+
+    let priceData = null;
+    try {
+      priceData = await getPriceData(vehicleYear, vehicleMake, vehicleModel, vehicleTrim);
+      // Also try without trim if no results
+      if (!priceData && vehicleTrim) {
+        priceData = await getPriceData(vehicleYear, vehicleMake, vehicleModel);
+      }
+    } catch (e) {
+      console.error("Price DB lookup failed:", e);
+    }
+
+    // If no data, queue a background scrape for next time
+    if (!priceData) {
+      queueScrape(vehicleYear, vehicleMake, vehicleModel, vehicleTrim).catch(() => {});
+    }
+
+    // Step 7b: Get auction comps (real sold/listed prices from IAA + Copart)
+    let auctionComps = null;
+    try {
+      auctionComps = await getAuctionComps(vehicleYear, vehicleMake, vehicleModel);
+    } catch (e) {
+      console.error("Auction comp search failed:", e);
+    }
+
+    // Add auction comp data to prompt
+    if (auctionComps && auctionComps.count > 0) {
+      const compLines = auctionComps.comps.slice(0, 6).map(c =>
+        `${c.platform.toUpperCase()} | $${c.price.toLocaleString()} (${c.priceType}) | ${c.mileage ? c.mileage.toLocaleString() + " mi" : "N/A mi"} | ${c.damage || "N/A"} | ${c.location || "N/A"}`
+      ).join("\n");
+
+      const compContext = `\nAUCTION COMPS (real ${auctionComps.count} similar listings from IAA/Copart):\n` +
+        `Range: $${auctionComps.priceRange.low.toLocaleString()} - $${auctionComps.priceRange.high.toLocaleString()} | ` +
+        `Median: $${auctionComps.median.toLocaleString()} | Avg: $${auctionComps.avg.toLocaleString()}\n` +
+        compLines + "\n" +
+        `NOTE: Price differences between comps are due to damage severity, title status, mileage, and location. Use these to estimate a realistic auction purchase price.`;
+      damageNotes = damageNotes ? `${damageNotes}\n\n${compContext}` : compContext;
+    }
+
+    // Add price data to damage notes so Claude sees it
+    if (priceData) {
+      const priceContext = `\nMARKET DATA (from ${priceData.sample_count} real listings, updated ${new Date(priceData.last_updated).toLocaleDateString()}):\n` +
+        `Median: $${priceData.median_price.toLocaleString()} | Range: $${priceData.price_low.toLocaleString()}-$${priceData.price_high.toLocaleString()}\n` +
+        `Avg mileage: ${priceData.avg_mileage?.toLocaleString() || "N/A"} | Sources: ${priceData.sources.join(", ")}\n` +
+        `USE THESE NUMBERS for market value. This is real data, not an estimate.`;
+      damageNotes = damageNotes ? `${damageNotes}\n\n${priceContext}` : priceContext;
+    }
+
+    // Step 8: Analyze with Claude (the AI part)
     const analysis = await analyzeVehicle({
       listing,
       vinDecode,

@@ -35,6 +35,24 @@ CRITICAL — PHOTO-FIRST DAMAGE ASSESSMENT:
 - DO NOT assume parts need replacement unless you can clearly see they are damaged, cracked, broken, or missing in the photos.
 - SPECIFICALLY CHECK: missing wheels, flat tires, bent rims, missing bumpers, missing hoods, broken glass, deployed airbags visible through windows. These are commonly missed but expensive.
 
+PARTS PRICING REFERENCE (aftermarket, approximate):
+DO NOT lowball parts costs. Use these as minimums. Luxury/performance cars cost MORE than economy cars.
+ECONOMY (Camry, Civic, Corolla, Altima):
+- Headlight: $100-200 | Bumper cover: $150-300 | Hood: $200-350 | Fender: $100-200
+MIDRANGE (Accord, RAV4, Mustang GT, Camaro SS, Charger):
+- Headlight: $200-400 | Bumper cover: $250-450 | Hood: $300-500 | Fender: $200-350
+PERFORMANCE (Hellcat, Scat Pack, GT500, Supra, M3/M4, Corvette):
+- Headlight: $500-1000 | Bumper cover: $400-700 | Hood: $500-900 | Fender: $300-600
+LUXURY (Lexus IS/RC/LC, BMW 3/4/5, Mercedes C/E, Genesis, Audi):
+- Headlight: $600-1500 | Bumper cover: $400-800 | Hood: $500-900 | Fender: $350-600
+- Lexus/BMW/Mercedes headlights are ESPECIALLY expensive: $800-2000+ for LED/adaptive units
+GENERAL RULES:
+- LED/adaptive headlights cost 2-3x more than halogen
+- Newer cars (2020+) have more expensive parts than older ones
+- If the car has a MSRP over $40K, parts are NOT cheap. Don't estimate $200 for a headlight on a $50K car.
+- Radiator support/core support: $300-800 depending on vehicle
+- Airbag set (if deployed): $2500-5000+ (already covered in airbag section)
+
 DO NOT re-estimate things already computed:
 - Auction fees are exact (provided)
 - Shipping is pre-calculated (provided)
