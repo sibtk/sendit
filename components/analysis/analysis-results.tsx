@@ -118,6 +118,7 @@ export default function AnalysisResults({
   const [paintOverride, setPaintOverride] = useState<{ low?: number; high?: number }>(saved.paintOverride ?? {});
   const [noShipping, setNoShipping] = useState(saved.noShipping ?? false);
   const [userNotes, setUserNotes] = useState(saved.userNotes ?? "");
+  const [showAllPhotos, setShowAllPhotos] = useState(false);
 
   // Auto-save edits on any change
   const doSave = useCallback(() => {
@@ -151,14 +152,16 @@ export default function AnalysisResults({
   const effectiveSellLow = sellOverride ?? a.financials.salePrice.low;
   const effectiveSellHigh = sellOverride ? Math.round(sellOverride * 1.1) : a.financials.salePrice.high;
 
-  // Recompute all downstream values
-  const purchase = a.financials.purchase;
-  const feeAmount = a.financials.auctionFees.amount;
+  // Recompute all downstream values using SLIDER price (not original Claude estimate)
+  const feeRate = a.financials.purchase > 0
+    ? a.financials.auctionFees.amount / a.financials.purchase
+    : 0.08;
+  const liveFees = Math.round(sliderPrice * feeRate);
   const shipCost = noShipping ? 0 : (a.financials.shipping?.estimate || 0);
   const detailCost = a.financials.detailing || 0;
 
-  const liveAllInLow = purchase + feeAmount + shipCost + effectiveRepairLow + detailCost;
-  const liveAllInHigh = purchase + feeAmount + shipCost + effectiveRepairHigh + detailCost;
+  const liveAllInLow = sliderPrice + liveFees + shipCost + effectiveRepairLow + detailCost;
+  const liveAllInHigh = sliderPrice + liveFees + shipCost + effectiveRepairHigh + detailCost;
   const liveProfitLow = effectiveSellLow - liveAllInHigh;
   const liveProfitHigh = effectiveSellHigh - liveAllInLow;
   const liveMidAllIn = (liveAllInLow + liveAllInHigh) / 2;
@@ -305,7 +308,7 @@ export default function AnalysisResults({
         {listing.imageUrls.length > 0 && (
           <div>
             <div className={`grid gap-2.5 ${listing.imageUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-              {listing.imageUrls.slice(0, 4).map((imgUrl, i) => (
+              {listing.imageUrls.slice(0, showAllPhotos ? undefined : 4).map((imgUrl, i) => (
                 <div
                   key={i}
                   className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#111113] border border-[#232326]"
@@ -313,21 +316,21 @@ export default function AnalysisResults({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imgUrl}
-                    alt={`Damage photo ${i + 1}`}
+                    alt={`Photo ${i + 1}`}
                     className="h-full w-full object-cover photo-hover"
                     loading="lazy"
                   />
-                  {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-2xl" />
                 </div>
               ))}
             </div>
             {listing.imageUrls.length > 4 && (
-              <div className="mt-2 text-center">
-                <span className="text-xs text-[#52525b]">
-                  +{listing.imageUrls.length - 4} more photos
-                </span>
-              </div>
+              <button
+                onClick={() => setShowAllPhotos(!showAllPhotos)}
+                className="mt-3 w-full text-center text-[12px] text-white/25 hover:text-white/40 transition-colors"
+              >
+                {showAllPhotos ? "Show less" : `+ Show all ${listing.imageUrls.length} photos`}
+              </button>
             )}
           </div>
         )}
@@ -511,16 +514,16 @@ export default function AnalysisResults({
               <span className="text-[14px] text-[#71717a]">
                 Purchase ({a.financials.auctionFees.platform === "copart" ? "Copart" : "IAA"})
               </span>
-              <span className="num-md text-[#d4d4d8]">
-                ${fmt(a.financials.purchase)}
+              <span className={`num-md ${sliderPrice !== a.financials.purchase ? "text-[#7dd3fc]" : "text-[#d4d4d8]"}`}>
+                ${fmt(sliderPrice)}
               </span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-dashed border-[#1e1e21]">
               <span className="text-[14px] text-[#71717a]">
-                Auction fees ({a.financials.auctionFees.feePct}%)
+                Auction fees ({Math.round(feeRate * 1000) / 10}%)
               </span>
-              <span className="num-md text-[#d4d4d8]">
-                ${fmt(a.financials.auctionFees.amount)}
+              <span className={`num-md ${sliderPrice !== a.financials.purchase ? "text-[#7dd3fc]" : "text-[#d4d4d8]"}`}>
+                ${fmt(liveFees)}
               </span>
             </div>
             <div className="flex justify-between items-center py-2.5 border-b border-dashed border-[#1e1e21]">
@@ -603,7 +606,7 @@ export default function AnalysisResults({
           <p className="text-[12px] text-[#52525b] mb-6">Drag to see your profit at any purchase price</p>
 
           {(() => {
-            const fixedCosts = (a.financials.shipping?.estimate || 0) + a.financials.detailing;
+            const fixedCosts = shipCost + detailCost;
             const repairMid = (effectiveRepairLow + effectiveRepairHigh) / 2;
             const sellMid = (effectiveSellLow + effectiveSellHigh) / 2;
             const sellHigh = effectiveSellHigh;
@@ -671,6 +674,11 @@ export default function AnalysisResults({
                       className="absolute top-0 h-3 w-px bg-[#52525b]"
                       style={{ left: `${breakevenPct}%` }}
                     />
+                    {/* Thumb dot */}
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 border-white bg-[#0a0a0b] shadow-[0_0_8px_rgba(125,211,252,0.3)] pointer-events-none transition-all duration-75"
+                      style={{ left: `calc(${sliderPct}% - 10px)` }}
+                    />
                     {/* Actual range input overlay */}
                     <input
                       type="range"
@@ -679,7 +687,7 @@ export default function AnalysisResults({
                       step={Math.max(100, Math.round(maxSlider / 300))}
                       value={sliderPrice}
                       onChange={(e) => setSliderPrice(parseInt(e.target.value))}
-                      className="absolute inset-0 w-full h-3 opacity-0 cursor-pointer"
+                      className="absolute inset-0 w-full h-5 -top-1 opacity-0 cursor-pointer"
                     />
                   </div>
                   <div className="flex justify-between mt-2 text-[11px] mono">

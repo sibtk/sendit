@@ -33,6 +33,7 @@ CRITICAL — PHOTO-FIRST DAMAGE ASSESSMENT:
 - A car with "Front End" damage listed but no visible damage in photos likely has minor/cosmetic issues only — maybe a scuff or tiny dent. Price accordingly.
 - If the car truly has no visible damage in photos, the repair estimate parts array should be EMPTY and total should be $0 (or a small detailing cost at most).
 - DO NOT assume parts need replacement unless you can clearly see they are damaged, cracked, broken, or missing in the photos.
+- SPECIFICALLY CHECK: missing wheels, flat tires, bent rims, missing bumpers, missing hoods, broken glass, deployed airbags visible through windows. These are commonly missed but expensive.
 
 DO NOT re-estimate things already computed:
 - Auction fees are exact (provided)
