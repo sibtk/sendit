@@ -9,13 +9,51 @@ import { analyzeVehicle } from "@/lib/claude";
 import { AnalyzeRequest, FullAnalysis, VinDecode } from "@/lib/types";
 import { getPriceData, queueScrape } from "@/lib/vehicle-db";
 import { getAuctionComps } from "@/lib/auction-comps";
+import { checkRateLimit, logUsage, getUserTier, UserTier } from "@/lib/rate-limit";
+import { createServerClient } from "@/lib/auth";
 import { randomUUID } from "crypto";
+import { cookies } from "next/headers";
 
-export const maxDuration = 60; // Allow up to 60s for the full pipeline
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
     const body: AnalyzeRequest = await request.json();
+
+    // --- Rate limiting ---
+    const supabase = createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || null;
+    let tier: UserTier = "anonymous";
+
+    if (userId) {
+      try { tier = await getUserTier(userId); } catch { tier = "free"; }
+    }
+
+    // Get or set fingerprint for anonymous users
+    const cookieStore = await cookies();
+    let fingerprint = cookieStore.get("sendit_fp")?.value || null;
+    if (!fingerprint && !userId) {
+      fingerprint = randomUUID();
+      // We'll set the cookie in the response
+    }
+
+    // Check rate limit
+    try {
+      const limit = await checkRateLimit(userId, fingerprint, tier);
+      if (!limit.allowed) {
+        const message = userId
+          ? `You've used all ${limit.limit} analyses this week. ${tier === "free" ? "Upgrade to Pro for unlimited." : "Resets " + new Date(limit.resetAt).toLocaleDateString()}`
+          : `Free analysis used this week. Sign up for 5/week free.`;
+        return NextResponse.json(
+          { error: message, rateLimited: true, tier, resetAt: limit.resetAt },
+          { status: 429 }
+        );
+      }
+    } catch (e) {
+      // If rate limit check fails (no DB), let it through
+      console.error("Rate limit check failed:", e);
+    }
 
     if (!body.url && !body.pastedText) {
       return NextResponse.json(
@@ -332,7 +370,43 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
-    return NextResponse.json(fullAnalysis);
+    // Log usage for rate limiting
+    try {
+      await logUsage(userId, fingerprint, body.url || "");
+    } catch (e) {
+      console.error("Usage logging failed:", e);
+    }
+
+    // Save to DB for signed-in users
+    if (userId) {
+      try {
+        await supabase.from("saved_analyses").insert({
+          id: fullAnalysis.id,
+          user_id: userId,
+          platform: listing.platform,
+          lot_number: listing.lotNumber,
+          url: listing.url,
+          listing_data: listing,
+          analysis_result: analysis,
+          repair_profile: body.repairProfile || "budget_shop",
+          user_location: body.userLocation || "Houston, TX",
+        });
+      } catch (e) {
+        console.error("Failed to save analysis:", e);
+      }
+    }
+
+    // Set fingerprint cookie for anonymous users
+    const response = NextResponse.json(fullAnalysis);
+    if (fingerprint && !userId) {
+      response.cookies.set("sendit_fp", fingerprint, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+      });
+    }
+    return response;
   } catch (error) {
     console.error("Analysis failed:", error);
     return NextResponse.json(

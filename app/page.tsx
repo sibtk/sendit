@@ -16,6 +16,7 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [rateLimited, setRateLimited] = useState(false);
 
   // Settings loaded from /settings page
   const [settings, setSettings] = useState(loadSettings());
@@ -66,6 +67,12 @@ export default function Home() {
 
       if (!res.ok) {
         const data = await res.json();
+        if (res.status === 429) {
+          // Rate limited — show upgrade message
+          setError(data.error);
+          setRateLimited(true);
+          return;
+        }
         throw new Error(data.error || "Analysis failed");
       }
 
@@ -154,10 +161,24 @@ export default function Home() {
               </div>
             )}
 
-            {/* Error */}
+            {/* Error / Rate limit */}
             {error && (
-              <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/[0.06] px-4 py-3 text-[13px] text-red-400">
-                {error}
+              <div className={`mt-4 rounded-xl border px-4 py-4 ${
+                rateLimited
+                  ? "border-[#7dd3fc]/20 bg-[#7dd3fc]/[0.04]"
+                  : "border-red-500/20 bg-red-500/[0.06]"
+              }`}>
+                <div className={`text-[13px] ${rateLimited ? "text-[#7dd3fc]" : "text-red-400"}`}>
+                  {error}
+                </div>
+                {rateLimited && (
+                  <button
+                    onClick={() => router.push("/login")}
+                    className="mt-3 rounded-lg bg-[#7dd3fc] px-4 py-2 text-sm font-semibold text-[#0a0a0b] hover:bg-[#a5e4ff] transition-all"
+                  >
+                    Sign up free →
+                  </button>
+                )}
               </div>
             )}
           </div>
