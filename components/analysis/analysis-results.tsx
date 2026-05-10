@@ -901,6 +901,35 @@ export default function AnalysisResults({
           </div>
         )}
 
+        {/* ---- CARFAX ---- */}
+        {listing.vin && !listing.vinMasked && (
+          <a
+            href={`https://www.carfax.com/VehicleHistory/p/Report.cfx?partner=YOUR_PARTNER_ID&vin=${listing.vin}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="card p-5 flex items-center justify-between group hover:border-[#3f3f46] transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#ff6b35]/10">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff6b35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                  <path d="M14 2v6h6" />
+                  <path d="M16 13H8" />
+                  <path d="M16 17H8" />
+                  <path d="M10 9H8" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-[13px] font-medium text-[#d4d4d8] group-hover:text-white transition-colors">Get Carfax Report</div>
+                <div className="text-[11px] text-[#3f3f46]">Full vehicle history — owners, accidents, service records</div>
+              </div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-[#3f3f46] group-hover:text-[#71717a] transition-colors">
+              <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+        )}
+
         {/* ---- RAW DATA (collapsed) ---- */}
         <details className="card p-7 group">
           <summary className="cursor-pointer text-sm text-[#3f3f46] hover:text-[#71717a] transition-colors font-medium">
