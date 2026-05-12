@@ -20,9 +20,31 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SendIt — Auction Car Flip Analyzer",
-  description:
-    "Paste any auction listing. Know before you bid — damage analysis, repair costs, and profit projections.",
+  title: "SendIt Scan — Should You Send It?",
+  description: "Paste a Copart or IAA link. Get AI damage analysis, repair costs, market comps, and a flip verdict in 15 seconds.",
+  metadataBase: new URL("https://senditscan.com"),
+  openGraph: {
+    title: "SendIt Scan — Should You Send It?",
+    description: "AI-powered auction car analysis. Paste a link, get the verdict.",
+    siteName: "SendIt Scan",
+    type: "website",
+    url: "https://senditscan.com",
+    images: [{ url: "/og.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SendIt Scan — Should You Send It?",
+    description: "AI-powered auction car analysis. Paste a link, get the verdict.",
+    images: ["/og.png"],
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -63,6 +85,9 @@ export default function RootLayout({
                 </a>
                 <a href="/analyses" className="hover:text-[#a1a1aa] transition-colors">
                   History
+                </a>
+                <a href="/pricing" className="hover:text-[#a1a1aa] transition-colors">
+                  Pricing
                 </a>
                 <UserMenu />
               </div>

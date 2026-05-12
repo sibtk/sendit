@@ -74,21 +74,29 @@ function HomeContent() {
     setProgress(0);
 
     const steps = [
-      "Scraping listing...",
-      "Decoding VIN...",
-      "Checking recalls...",
-      "Downloading photos...",
-      "Running analysis...",
+      { label: "Scraping listing...", pct: 15, delay: 800 },
+      { label: "Decoding VIN...", pct: 30, delay: 1200 },
+      { label: "Pulling comps...", pct: 45, delay: 1500 },
+      { label: "Downloading photos...", pct: 55, delay: 2000 },
+      { label: "Analyzing damage...", pct: 65, delay: 2500 },
+      { label: "Crunching numbers...", pct: 75, delay: 3000 },
+      { label: "Almost there...", pct: 82, delay: 4000 },
+      { label: "Finalizing...", pct: 88, delay: 5000 },
     ];
 
     let step = 0;
-    const timer = setInterval(() => {
+    const timer = { clear: false };
+    const advanceStep = () => {
+      if (timer.clear || step >= steps.length) return;
+      setProgressLabel(steps[step].label);
+      setProgress(steps[step].pct);
+      const delay = steps[step].delay;
+      step++;
       if (step < steps.length) {
-        setProgressLabel(steps[step]);
-        setProgress(Math.min(90, (step + 1) / steps.length * 90));
-        step++;
+        setTimeout(advanceStep, delay);
       }
-    }, 1500);
+    };
+    advanceStep();
 
     try {
       const body: AnalyzeRequest = {
@@ -120,7 +128,7 @@ function HomeContent() {
         body: JSON.stringify(body),
       });
 
-      clearInterval(timer);
+      timer.clear = true;
 
       if (!res.ok) {
         let errorMsg = `Analysis failed (${res.status})`;
@@ -146,7 +154,7 @@ function HomeContent() {
       saveAnalysis(data);
       router.push(`/analysis/${data.id}`);
     } catch (e) {
-      clearInterval(timer);
+      timer.clear = true;
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setLoading(false);

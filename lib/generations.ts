@@ -1279,7 +1279,13 @@ export function getCompYearRange(make: string, model: string, year: number): [nu
   // Find which generation this year belongs to
   for (const g of gens) {
     if (year >= g.years[0] && year <= g.years[1]) {
-      return g.years;
+      // Use generation boundaries but cap to ±2 years from actual vehicle year
+      // This prevents a 2025 IS from pulling 2014 comps even though same gen
+      const genMin = g.years[0];
+      const genMax = g.years[1];
+      const cappedMin = Math.max(genMin, year - 2);
+      const cappedMax = Math.min(genMax, year + 2);
+      return [cappedMin, cappedMax];
     }
   }
 

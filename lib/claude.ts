@@ -12,32 +12,75 @@ import { buildSystemPrompt, buildUserPrompt } from "./prompt";
 
 const client = new Anthropic();
 
-// Smart photo selection — pick the most damage-relevant photos
-function selectDamagePhotos(
-  imageUrls: string[],
-  maxPhotos: number = 5
-): string[] {
-  if (imageUrls.length <= maxPhotos) return imageUrls;
+// Photo angle labels — IAA uses these in their image descriptions
+const ANGLE_PRIORITY: { keywords: string[]; label: string; priority: number }[] = [
+  { keywords: ["passenger front", "pass front", "right front", "rf"], label: "FRONT-RIGHT", priority: 1 },
+  { keywords: ["driver front", "driv front", "left front", "lf", "front left"], label: "FRONT-LEFT", priority: 2 },
+  { keywords: ["driver rear", "driv rear", "left rear", "lr", "rear left"], label: "REAR-LEFT", priority: 3 },
+  { keywords: ["passenger rear", "pass rear", "right rear", "rr", "rear right"], label: "REAR-RIGHT", priority: 4 },
+  { keywords: ["damage", "dmg", "impact"], label: "DAMAGE-CLOSEUP", priority: 5 },
+  { keywords: ["front", "frt"], label: "FRONT", priority: 6 },
+  { keywords: ["rear", "back"], label: "REAR", priority: 7 },
+  { keywords: ["left", "driver"], label: "LEFT-SIDE", priority: 8 },
+  { keywords: ["right", "passenger"], label: "RIGHT-SIDE", priority: 9 },
+  { keywords: ["interior front", "int front", "cabin"], label: "INTERIOR", priority: 10 },
+];
 
-  const prioritized = [...imageUrls];
+// Skip these — no damage info. Use specific patterns to avoid false matches on URLs
+const SKIP_KEYWORDS = ["odometer", "vin plate", "key photo", "manufacturer vin", "engine photo", "misc parts", "not attached", "title doc"];
 
-  // Deprioritize odometer, VIN plate, key, interior shots
-  const lowPriority = ["odom", "vin", "key", "interior", "dash", "seat"];
-  prioritized.sort((a, b) => {
-    const aLow = lowPriority.some((kw) => a.toLowerCase().includes(kw));
-    const bLow = lowPriority.some((kw) => b.toLowerCase().includes(kw));
-    if (aLow && !bLow) return 1;
-    if (!aLow && bLow) return -1;
-    return 0;
-  });
+interface LabeledPhoto {
+  url: string;
+  label: string;
+  priority: number;
+}
 
-  return prioritized.slice(0, maxPhotos);
+function selectAndLabelPhotos(imageUrls: string[], maxPhotos: number = 4): LabeledPhoto[] {
+  // IAA standard photo order: 1=front-right, 2=front-left, 3=rear-left, 4=rear-right
+  // Copart varies but generally similar
+  const DEFAULT_LABELS = ["FRONT-RIGHT", "FRONT-LEFT", "REAR-LEFT", "REAR-RIGHT", "DAMAGE-CLOSEUP", "EXTRA"];
+
+  const labeled: LabeledPhoto[] = [];
+
+  for (let i = 0; i < imageUrls.length; i++) {
+    const url = imageUrls[i];
+    const lower = url.toLowerCase();
+
+    // Skip non-damage photos — only for URLs with descriptive text (not IAA index URLs)
+    const hasDescriptiveText = !lower.includes("vis.iaai.com") && !lower.includes("cs.copart.com");
+    if (hasDescriptiveText && SKIP_KEYWORDS.some(kw => lower.includes(kw))) continue;
+
+    // Try to match a known angle from URL
+    let label: string | null = null;
+    let priority = 50 + i;
+    for (const angle of ANGLE_PRIORITY) {
+      if (angle.keywords.some(kw => lower.includes(kw))) {
+        label = angle.label;
+        priority = angle.priority;
+        break;
+      }
+    }
+
+    // If no keyword match, assign default label by position
+    // IAA photos are consistently ordered: front-right, front-left, rear-left, rear-right
+    if (!label) {
+      const defaultIdx = labeled.length;
+      label = defaultIdx < DEFAULT_LABELS.length ? DEFAULT_LABELS[defaultIdx] : `PHOTO-${defaultIdx + 1}`;
+      priority = defaultIdx + 1;
+    }
+
+    labeled.push({ url, label, priority });
+  }
+
+  // Sort by priority, take top N
+  labeled.sort((a, b) => a.priority - b.priority);
+  return labeled.slice(0, maxPhotos);
 }
 
 // Downsize IAA image URLs for Claude analysis (saves ~75% on tokens)
 function downsizeUrl(url: string): string {
   if (url.includes("vis.iaai.com/resizer")) {
-    return url.replace(/width=\d+&height=\d+/, "width=1024&height=768");
+    return url.replace(/width=\d+&height=\d+/, "width=1280&height=960");
   }
   return url;
 }
@@ -110,37 +153,52 @@ export async function analyzeVehicle(params: {
     damageNotes,
   });
 
-  // Build message content with photos
+  // Build message content with labeled photos
   const content: Anthropic.MessageCreateParams["messages"][0]["content"] = [];
 
-  // Download and add damage photos as base64
-  const selectedPhotos = selectDamagePhotos(listing.imageUrls);
+  // Select and label 5 best exterior photos in consistent order
+  const labeledPhotos = selectAndLabelPhotos(listing.imageUrls || [], 5);
   const photoResults = await Promise.all(
-    selectedPhotos.map((url) => fetchImageAsBase64(url))
+    labeledPhotos.map(async (lp) => ({
+      label: lp.label,
+      image: await fetchImageAsBase64(lp.url),
+    }))
   );
 
   let photosAdded = 0;
-  for (const photo of photoResults) {
-    if (photo) {
+  const photoLabels: string[] = [];
+  for (const { label, image } of photoResults) {
+    if (image) {
+      // Add label before each photo so Claude knows the angle
+      content.push({
+        type: "text",
+        text: `[${label}]`,
+      });
       content.push({
         type: "image",
         source: {
           type: "base64",
-          media_type: photo.mediaType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
-          data: photo.base64,
+          media_type: image.mediaType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+          data: image.base64,
         },
       });
       photosAdded++;
+      photoLabels.push(label);
     }
   }
 
-  console.log(`Sent ${photosAdded} photos to Claude (of ${selectedPhotos.length} attempted)`);
+  console.log(`Sent ${photosAdded} labeled photos to Claude: ${photoLabels.join(", ")}`);
 
-  // If too few photos loaded, warn Claude to limit its visual assessment
+  // Build final prompt with photo context
   let finalPrompt = userPrompt;
   if (photosAdded < 2) {
-    const warning = `WARNING: Only ${photosAdded} of ${selectedPhotos.length} photos loaded successfully. Your damage assessment MUST be limited to what you can see. If no photos loaded, state that damage cannot be assessed visually and note it as an unknown risk.`;
+    const warning = `WARNING: Only ${photosAdded} photos loaded successfully. Your damage assessment MUST be limited to what you can see. If no photos loaded, state that damage cannot be assessed visually and note it as an unknown risk.`;
     finalPrompt = warning + "\n\n" + userPrompt;
+  } else {
+    const photoContext = `\nPHOTOS PROVIDED: ${photoLabels.join(", ")}.
+EXAMINE EACH PHOTO INDEPENDENTLY. For EACH photo, describe what damage you see at that specific angle.
+CRITICAL: Check the REAR of the car carefully. Missing rear bumpers, tail light damage, and rear quarter damage are commonly missed. If ANY bumper (front OR rear) is missing or damaged, it MUST be in the repair estimate.`;
+    finalPrompt = photoContext + "\n\n" + userPrompt;
   }
 
   // Add the text prompt

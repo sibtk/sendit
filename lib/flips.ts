@@ -1,6 +1,24 @@
 import { createBrowserClient } from "./auth";
 import { Flip, FullAnalysis } from "./types";
 
+function trackFlipEvent(eventType: string, flip: Partial<Flip>, userId: string) {
+  const sb = createBrowserClient();
+  sb.from("analytics_events").insert({
+    event_type: eventType,
+    user_id: userId,
+    platform: flip.platform,
+    vehicle_year: flip.vehicle_year,
+    vehicle_make: flip.vehicle_make,
+    vehicle_model: flip.vehicle_model,
+    actual_purchase: flip.purchase_price,
+    actual_sale: flip.sale_price,
+    actual_repair_cost: flip.repair_cost,
+    actual_profit: flip.actual_profit,
+  }).then(({ error }) => {
+    if (error) console.error(`Analytics ${eventType} failed:`, error);
+  });
+}
+
 function getClient() {
   return createBrowserClient();
 }
@@ -30,6 +48,7 @@ export async function watchAnalysis(userId: string, analysis: FullAnalysis): Pro
   }).select().single();
 
   if (error) { console.error("Watch failed:", error); return null; }
+  trackFlipEvent("watch", data as Flip, userId);
   return data as Flip;
 }
 
@@ -59,15 +78,16 @@ export async function getFlipByAnalysisId(userId: string, analysisId: string): P
 
 export async function markWon(flipId: string, purchasePrice: number, auctionFees: number, shippingCost: number): Promise<boolean> {
   const sb = getClient();
-  const { error } = await sb.from("flips").update({
+  const { error, data } = await sb.from("flips").update({
     status: "won",
     purchase_price: purchasePrice,
     auction_fees: auctionFees,
     shipping_cost: shippingCost,
     won_at: new Date().toISOString(),
-  }).eq("id", flipId);
+  }).eq("id", flipId).select().single();
 
   if (error) { console.error("Mark won failed:", error); return false; }
+  if (data) trackFlipEvent("won", data as Flip, data.user_id);
   return true;
 }
 
@@ -76,16 +96,24 @@ export async function markSold(flipId: string, salePrice: number, saleChannel: s
   const totalCosts = (flip.purchase_price || 0) + (flip.auction_fees || 0) + (flip.shipping_cost || 0) + repairCost;
   const profit = salePrice - totalCosts;
 
-  const { error } = await sb.from("flips").update({
+  const { error, data } = await sb.from("flips").update({
     status: "sold",
     sale_price: salePrice,
     sale_channel: saleChannel,
     repair_cost: repairCost,
     actual_profit: profit,
     sold_at: new Date().toISOString(),
-  }).eq("id", flipId);
+  }).eq("id", flipId).select().single();
 
   if (error) { console.error("Mark sold failed:", error); return false; }
+  if (data) {
+    const wonDate = data.won_at ? new Date(data.won_at) : null;
+    const daysToSell = wonDate ? Math.floor((Date.now() - wonDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    trackFlipEvent("sold", { ...data as Flip, actual_profit: profit }, data.user_id);
+    // Also log days to sell
+    const sbTrack = getClient();
+    sbTrack.from("analytics_events").update({ days_to_sell: daysToSell }).eq("event_type", "sold").eq("user_id", data.user_id).order("created_at", { ascending: false }).limit(1).then(() => {});
+  }
   return true;
 }
 

@@ -211,6 +211,67 @@ CREATE TABLE IF NOT EXISTS flips (
 
 CREATE INDEX IF NOT EXISTS idx_flips_user ON flips(user_id, status, created_at DESC);
 
+-- =============================================
+-- ANALYTICS
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS analytics_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid,
+  fingerprint text,
+  event_type text NOT NULL,  -- 'analysis' | 'watch' | 'won' | 'sold' | 'signup' | 'part_click' | 'part_add' | 'part_remove'
+
+  -- Analysis metrics
+  platform text,             -- 'iaa' | 'copart'
+  vehicle_year int,
+  vehicle_make text,
+  vehicle_model text,
+  verdict text,              -- 'BUY' | 'PASS' | 'RISKY'
+  damage_severity text,      -- 'minor' | 'moderate' | 'severe'
+  repair_estimate_low int,
+  repair_estimate_high int,
+  sell_price_low int,
+  sell_price_high int,
+  profit_low int,
+  profit_high int,
+  roi_pct numeric,
+  photo_count int,
+  comp_count_auction int,
+  comp_count_retail int,
+  has_acv boolean,
+  sell_price_overridden boolean,  -- did server-side override Claude's sell price
+  parts_count int,
+  labor_hours numeric,
+
+  -- User edit tracking
+  parts_added int DEFAULT 0,
+  parts_removed int DEFAULT 0,
+  labor_edited boolean DEFAULT false,
+
+  -- Flip outcome (filled when sold)
+  actual_purchase int,
+  actual_sale int,
+  actual_repair_cost int,
+  actual_profit int,
+  days_to_sell int,
+
+  -- Part click tracking
+  part_name text,
+  shop_target text,          -- 'ebay' | 'partsgeek' | 'oem'
+
+  -- Meta
+  analysis_time_ms int,      -- how long the analysis took
+  cached boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics_events(event_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_user ON analytics_events(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_platform ON analytics_events(platform, created_at DESC);
+
+ALTER TABLE analytics_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role can manage analytics" ON analytics_events FOR ALL USING (true);
+
 ALTER TABLE flips ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own flips" ON flips FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own flips" ON flips FOR INSERT WITH CHECK (auth.uid() = user_id);

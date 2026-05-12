@@ -319,6 +319,25 @@ export default function AnalysisResults({
             </div>
           </div>
 
+          {/* BIN + Current Bid */}
+          {(listing.buyItNow || listing.currentBid) && (
+            <div className="hidden lg:flex gap-2 mt-4">
+              {listing.buyItNow && (
+                <div className="flex-1 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.15em] text-[#52525b] mb-1">Buy It Now</div>
+                  <div className="text-[15px] mono font-bold text-[#e4e4e7]">${fmt(listing.buyItNow)}</div>
+                </div>
+              )}
+              {listing.currentBid && (
+                <div className="flex-1 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.15em] text-[#52525b] mb-1">Current Bid</div>
+                  <div className="text-[15px] mono font-bold text-[#e4e4e7]">${fmt(listing.currentBid)}</div>
+                  <div className="text-[9px] text-[#3f3f46] mt-1">at time of scan</div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Auction date */}
           {listing.auctionDate && (
             <div className="hidden lg:block mt-4 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
@@ -331,14 +350,21 @@ export default function AnalysisResults({
                   const diffMs = d.getTime() - Date.now();
                   const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
                   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                  const dateStr = `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
+                  const dateStr = `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
+                  const hours = d.getHours();
+                  const mins = d.getMinutes();
+                  const ampm = hours >= 12 ? "PM" : "AM";
+                  const timeStr = `${hours % 12 || 12}:${mins.toString().padStart(2, "0")} ${ampm}`;
                   let countdown = "";
                   if (diffMs < 0) countdown = "Passed";
                   else if (diffHrs < 24) countdown = `${diffHrs}h`;
                   else if (diffDays === 1) countdown = "Tomorrow";
                   else countdown = `${diffDays} days`;
                   return (
-                    <span>{dateStr} <span className={`mono font-medium ml-1 ${diffHrs < 24 && diffMs > 0 ? "text-orange-400" : "text-[#52525b]"}`}>({countdown})</span></span>
+                    <div>
+                      <span>{dateStr} at {timeStr}</span>
+                      <span className={`mono font-medium ml-2 ${diffHrs < 24 && diffMs > 0 ? "text-orange-400" : "text-[#52525b]"}`}>({countdown})</span>
+                    </div>
                   );
                 })()}
               </div>
@@ -365,9 +391,12 @@ export default function AnalysisResults({
 
         {/* ---- VEHICLE CARD (full width) ---- */}
         <div className={`xl:col-span-2 card-gradient card-gradient-${verdictColor} p-7`}>
-          <h2 className="mb-3 text-2xl font-bold tracking-tight text-[#fafafa]">
+          <h2 className="mb-1 text-2xl font-bold tracking-tight text-[#fafafa]">
             {vehicleTitle}
           </h2>
+          {listing.vin && (
+            <div className="mb-3 text-[11px] mono text-[#3f3f46] select-all">{listing.vin}</div>
+          )}
 
           {/* Specs — horizontal chips */}
           <div className="mb-5 flex flex-wrap gap-2">

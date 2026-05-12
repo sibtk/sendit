@@ -54,7 +54,15 @@ function FlipCard({
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(true);
+  const [, setTick] = useState(0);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Live countdown — tick every 30s for watching cards
+  useEffect(() => {
+    if (flip.status !== "watching" || !flip.auction_date) return;
+    const interval = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(interval);
+  }, [flip.status, flip.auction_date]);
   const [showWonForm, setShowWonForm] = useState(false);
   const [showSoldForm, setShowSoldForm] = useState(false);
   const [purchaseInput, setPurchaseInput] = useState("");

@@ -359,12 +359,20 @@ export async function scrapeIAA(stockNumber: string): Promise<ListingData> {
     buyItNow,
     acv,
     estimatedRepairCost,
-    auctionDate: extract("Auction Date and Time") || extract("Auction Date") || extract("Sale Date") || extract("auctionDateTime") || extract("AuctionDate") || (() => {
-      // Try to find date patterns like "Mon May 11, 8:30am" or "05/12/2026"
-      const dateMatch = html.match(/Auction\s*Date[^<]*<[^>]*>\s*([^<]+\d{4}[^<]*)/i)
+    auctionDate: (() => {
+      // IAA embeds auction date as "AuctionDateTime" in JSON
+      const jsonMatch = html.match(/"AuctionDateTime"\s*:\s*"([^"]+)"/i)
         || html.match(/"auctionDate(?:Time)?"\s*:\s*"([^"]+)"/i)
         || html.match(/"SaleDate"\s*:\s*"([^"]+)"/i);
-      return dateMatch?.[1]?.trim() || null;
+      if (jsonMatch?.[1]) {
+        // Parse "5/18/2026 1:30:00 PM +00:00" into ISO
+        try {
+          const d = new Date(jsonMatch[1].replace(/\\u002B/g, "+"));
+          if (!isNaN(d.getTime())) return d.toISOString();
+        } catch {}
+        return jsonMatch[1].trim();
+      }
+      return extract("Auction Date and Time") || extract("Auction Date") || extract("Sale Date") || null;
     })(),
     imageUrls,
     sellerType: (() => {

@@ -3,6 +3,41 @@ import { ListingData } from "./types";
 const COPART_API = "https://www.copart.com/public/data/lotdetails/solr";
 const COPART_IMAGES_API =
   "https://www.copart.com/public/data/lotdetails/solr/lotImages";
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || "";
+
+// Fetch with ScraperAPI fallback for Incapsula bypass
+async function fetchWithFallback(url: string): Promise<Response> {
+  // Try direct first
+  const direct = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Accept": "application/json, text/plain, */*",
+    },
+  });
+
+  if (direct.ok) {
+    const text = await direct.text();
+    // Check if it's the Incapsula bot wall (HTML instead of JSON)
+    if (text.includes("Incapsula") || text.includes("_Incapsula_Resource") || !text.startsWith("{")) {
+      console.log("Copart: Incapsula blocked, falling back to ScraperAPI");
+      if (!SCRAPER_API_KEY) throw new Error("Copart blocked by Incapsula and no ScraperAPI key configured");
+      // Use render=true for lot details (needs JS), render=false for images (plain JSON)
+      const needsRender = !url.includes("lotImages");
+      const scraperUrl = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}${needsRender ? "&render=true" : ""}`;
+      const fallback = await fetch(scraperUrl);
+      if (!fallback.ok) throw new Error(`ScraperAPI returned ${fallback.status}`);
+      const fallbackText = await fallback.text();
+      // ScraperAPI might also get blocked
+      if (fallbackText.includes("Incapsula") || !fallbackText.startsWith("{")) {
+        throw new Error("Copart blocked even through ScraperAPI");
+      }
+      return new Response(fallbackText, { status: 200, headers: { "content-type": "application/json" } });
+    }
+    return new Response(text, { status: 200, headers: { "content-type": "application/json" } });
+  }
+
+  throw new Error(`Copart API returned ${direct.status}`);
+}
 
 interface CopartLotData {
   ln?: number; // lot number
@@ -55,18 +90,8 @@ function parseStartCode(rc: string | undefined): string | null {
 }
 
 export async function scrapeCopart(lotNumber: string): Promise<ListingData> {
-  // Fetch lot details
-  const detailsRes = await fetch(`${COPART_API}/${lotNumber}`, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-    },
-  });
-
-  if (!detailsRes.ok) {
-    throw new Error(`Copart API returned ${detailsRes.status}`);
-  }
-
+  // Fetch lot details (with ScraperAPI fallback if Incapsula blocks)
+  const detailsRes = await fetchWithFallback(`${COPART_API}/${lotNumber}`);
   const detailsJson = await detailsRes.json();
 
   if (detailsJson.returnCode !== 1) {
@@ -77,31 +102,27 @@ export async function scrapeCopart(lotNumber: string): Promise<ListingData> {
 
   const lot: CopartLotData = detailsJson.data?.lotDetails || {};
 
-  // Fetch images
+  // Fetch images (same fallback)
   let imageUrls: string[] = [];
   try {
-    const imagesRes = await fetch(`${COPART_IMAGES_API}/${lotNumber}/USA`, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-      },
-    });
-    if (imagesRes.ok) {
-      const imagesJson = await imagesRes.json();
-      const images = imagesJson.data?.imagesList?.FULL_IMAGE || [];
-      imageUrls = images
-        .filter((img: { url?: string }) => img.url)
-        .map((img: { url: string }) => img.url);
-    }
+    const imagesRes = await fetchWithFallback(`${COPART_IMAGES_API}/${lotNumber}/USA`);
+    const imagesJson = await imagesRes.json();
+    // Copart uses two different formats: FULL_IMAGE array or content array with fullUrl
+    const imagesOld = imagesJson.data?.imagesList?.FULL_IMAGE || [];
+    const imagesNew = imagesJson.data?.imagesList?.content || [];
+    const allImages = [...imagesOld, ...imagesNew];
+    imageUrls = allImages
+      .map((img: Record<string, unknown>) => (img.url || img.fullUrl || img.highResUrl || "") as string)
+      .filter((url: string) => url.length > 10);
   } catch {
     // Images are optional, don't fail the whole scrape
   }
 
-  const vin = (lot.fld as string) || null;
+  const vin = (lot.fv as string) || (lot.fld as string) || null;
   const vinMasked = vin ? vin.includes("*") : true;
 
-  // Parse model — Copart sometimes includes trim in model name
-  const modelRaw = (lot.mmon as string) || "";
+  // Parse model — try multiple field names, Copart changed their API
+  const modelRaw = (lot.lm as string) || (lot.mmon as string) || (lot.lmg as string) || "";
   const modelParts = modelRaw.split(" ");
   const model = modelParts[0] || modelRaw;
   const trim = modelParts.length > 1 ? modelParts.slice(1).join(" ") : null;
@@ -109,7 +130,23 @@ export async function scrapeCopart(lotNumber: string): Promise<ListingData> {
   // Parse current bid
   const currentBid =
     lot.dynamicLotDetails?.currentBid ||
+    (lot.hb ? parseFloat(String(lot.hb)) : null) ||
     (lot.htsmn ? parseFloat(String(lot.htsmn)) : null);
+
+  // Parse auction date — could be epoch ms or string
+  let auctionDate: string | null = null;
+  const adRaw = lot.ad;
+  if (adRaw) {
+    if (typeof adRaw === "number" || /^\d{10,}$/.test(String(adRaw))) {
+      auctionDate = new Date(Number(adRaw)).toISOString();
+    } else {
+      auctionDate = String(adRaw);
+    }
+  }
+
+  // Parse ACV
+  const acvRaw = lot.la || lot.lotPlugAcv;
+  const acv = typeof acvRaw === "number" ? acvRaw : (acvRaw ? parseFloat(String(acvRaw)) : null);
 
   return {
     platform: "copart",
@@ -118,39 +155,40 @@ export async function scrapeCopart(lotNumber: string): Promise<ListingData> {
     vin,
     vinMasked,
     year: (lot.lcy as number) || 0,
-    make: (lot.mkn as string) || "",
+    make: (lot.mkn as string) || (lot.lmc as string) || "",
     model,
     trim,
-    bodyStyle: null, // Copart doesn't always give this in the API
-    engine: (lot.engtp as string) || null,
-    transmission: (lot.tmtp as string) || null,
-    drivetrain: (lot.dd as string) || null,
-    fuelType: (lot.fv as string) || null,
-    cylinders: (lot.cylnd as number) || null,
-    hp: null, // Not in Copart API, will come from VIN decode
+    bodyStyle: (lot.bstl as string) || null,
+    engine: (lot.egn as string) || (lot.engtp as string) || null,
+    transmission: (lot.tmtp as string) || (lot.tsmn as string) || null,
+    drivetrain: (lot.drv as string) || null,
+    fuelType: (lot.ft as string) || null,
+    cylinders: (lot.cy as number) || (lot.cylnd as number) || null,
+    hp: null,
     exteriorColor: (lot.clr as string) || null,
     interiorColor: null,
     mileage: (lot.orr as number) || null,
-    mileageStatus: null,
-    primaryDamage: (lot.dmg as string) || null,
+    mileageStatus: (lot.ord as string) || null,
+    primaryDamage: (lot.dd as string) || (lot.dmg as string) || null,
     secondaryDamage: null,
-    lossType: (lot.la as string) || null,
-    titleStatus: (lot.sdf as string) || null,
-    titleBrand: (lot.bndc as string) || null,
-    startCode: parseStartCode(lot.rc as string | undefined),
+    lossType: null,
+    titleStatus: (lot.td as string) || (lot.tgd as string) || (lot.sdf as string) || null,
+    titleBrand: (lot.tgd as string) || (lot.bndc as string) || null,
+    startCode: parseStartCode((lot.lcd as string) || (lot.rc as string) || undefined),
     keyPresent: lot.hk === "YES" || lot.hk === "Y",
     airbags: null,
-    sellingBranch: (lot.ynm as string) || null,
-    branchCity: null,
-    branchState: (lot.ysta as string) || null,
+    sellingBranch: (lot.yn as string) || (lot.ynm as string) || null,
+    branchCity: (lot.locCity as string) || null,
+    branchState: (lot.locState as string) || (lot.ysta as string) || null,
     branchCoordinates:
-      lot.lat && lot.lon ? { lat: lot.lat, lng: lot.lon } : null,
+      lot.lat && lot.long ? { lat: lot.lat as number, lng: lot.long as number } :
+      lot.lat && lot.lon ? { lat: lot.lat as number, lng: lot.lon as number } : null,
     currentBid,
     buyItNow: (lot.bin as number) || null,
-    acv: null,
+    acv: typeof acv === "number" ? acv : null,
     estimatedRepairCost: null,
-    auctionDate: (lot.ad as string) || null,
+    auctionDate,
     imageUrls,
-    sellerType: "insurance" as const, // Copart is primarily insurance
+    sellerType: (lot.stt as string) === "CT" ? "fleet" as const : "insurance" as const,
   };
 }

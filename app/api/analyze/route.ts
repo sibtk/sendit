@@ -13,6 +13,7 @@ import { getRetailComps } from "@/lib/scraper-autotempest";
 import { checkRateLimit, logUsage, getUserTier, UserTier } from "@/lib/rate-limit";
 import { createServerClient } from "@/lib/auth";
 import { createClient } from "@supabase/supabase-js";
+import { trackAnalysis } from "@/lib/analytics";
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 
@@ -20,6 +21,7 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
+    const analysisStart = Date.now();
     const body: AnalyzeRequest = await request.json();
 
     // --- Auth: get user from request header ---
@@ -104,6 +106,30 @@ export async function POST(request: NextRequest) {
 
             // Still log usage for rate limiting
             try { await logUsage(userId, fingerprint, body.url); } catch {}
+
+            // Track cached hit
+            trackAnalysis({
+              userId, fingerprint,
+              platform: cached.platform || "",
+              vehicleYear: cached.listing_data?.listing?.year || 0,
+              vehicleMake: cached.listing_data?.listing?.make || "",
+              vehicleModel: cached.listing_data?.listing?.model || "",
+              verdict: cached.analysis_result?.verdict || "",
+              damageSeverity: cached.analysis_result?.damageAssessment?.severity || "unknown",
+              repairEstimateLow: cached.analysis_result?.repairEstimate?.total?.low || 0,
+              repairEstimateHigh: cached.analysis_result?.repairEstimate?.total?.high || 0,
+              sellPriceLow: cached.analysis_result?.financials?.salePrice?.low || 0,
+              sellPriceHigh: cached.analysis_result?.financials?.salePrice?.high || 0,
+              profitLow: cached.analysis_result?.financials?.profit?.low || 0,
+              profitHigh: cached.analysis_result?.financials?.profit?.high || 0,
+              roiPct: cached.analysis_result?.financials?.roiPct || 0,
+              photoCount: 0, compCountAuction: 0, compCountRetail: 0,
+              hasAcv: false, sellPriceOverridden: false,
+              partsCount: cached.analysis_result?.repairEstimate?.parts?.length || 0,
+              laborHours: 0,
+              analysisTimeMs: Date.now() - analysisStart,
+              cached: true,
+            });
 
             const response = NextResponse.json(cachedResult);
             if (fingerprint && !userId) {
@@ -337,6 +363,8 @@ export async function POST(request: NextRequest) {
       analysis.financials.marginPct = analysis.financials.roiPct;
     }
 
+    let sellPriceOverridden = false;
+
     // Step 9: Server-side sell price calculation
     // Claude consistently undervalues cars. We compute sell price from real data.
     {
@@ -398,6 +426,7 @@ export async function POST(request: NextRequest) {
         const claudeMid = (analysis.financials.salePrice.low + analysis.financials.salePrice.high) / 2;
         const ourMid = (saleLow + saleHigh) / 2;
         if (Math.abs(ourMid - claudeMid) > claudeMid * 0.15) {
+          sellPriceOverridden = true;
           console.log(`Sell price override: Claude $${claudeMid.toLocaleString()} → Server $${ourMid.toLocaleString()} (ACV: $${acv.toLocaleString()}, adj comps: $${adjustedCompMedian?.toLocaleString() || "N/A"})`);
           analysis.financials.salePrice.low = saleLow;
           analysis.financials.salePrice.high = saleHigh;
@@ -587,6 +616,34 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       console.error("Failed to save analysis:", e);
     }
+
+    // Track analytics
+    trackAnalysis({
+      userId,
+      fingerprint,
+      platform: listing.platform,
+      vehicleYear: listing.year || 0,
+      vehicleMake: listing.make || "",
+      vehicleModel: listing.model || "",
+      verdict: a.verdict,
+      damageSeverity: a.damageAssessment?.severity || "unknown",
+      repairEstimateLow: a.repairEstimate.total.low,
+      repairEstimateHigh: a.repairEstimate.total.high,
+      sellPriceLow: a.financials.salePrice.low,
+      sellPriceHigh: a.financials.salePrice.high,
+      profitLow: a.financials.profit.low,
+      profitHigh: a.financials.profit.high,
+      roiPct: a.financials.roiPct,
+      photoCount: listing.imageUrls?.length || 0,
+      compCountAuction: fullAnalysis.auctionComps?.length || 0,
+      compCountRetail: fullAnalysis.retailComps?.length || 0,
+      hasAcv: !!(listing.acv && listing.acv > 0),
+      sellPriceOverridden,
+      partsCount: a.repairEstimate.parts.length,
+      laborHours: a.repairEstimate.laborHours || 0,
+      analysisTimeMs: Date.now() - analysisStart,
+      cached: false,
+    });
 
     // Set fingerprint cookie for anonymous users
     const response = NextResponse.json(fullAnalysis);
