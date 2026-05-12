@@ -182,8 +182,11 @@ function HomeContent() {
               </span>
               <span className="text-white/90">?</span>
             </h1>
-            <p className="mb-8 text-[15px] text-white/30">
+            <p className="mb-2 text-[15px] text-white/30">
               Paste an IAA or Copart URL. Get the verdict.
+            </p>
+            <p className="mb-8 text-[12px] text-white/15">
+              Try it free — no account or card required.
             </p>
 
             {/* URL input */}

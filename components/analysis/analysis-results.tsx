@@ -1500,6 +1500,11 @@ export default function AnalysisResults({
             </button>
           </div>
         </div>
+
+        {/* Disclaimer */}
+        <div className="xl:col-span-2 text-[10px] text-[#3f3f46] leading-relaxed mt-4 px-1">
+          Estimates are for informational purposes only and do not constitute professional appraisals or financial advice. AI damage assessment may not identify all damage — always inspect vehicles in person before purchasing. Repair costs are estimates that vary by location, shop, and parts availability. Market values are based on available data and may not reflect actual sale prices. User assumes all risk on purchase decisions. SendIt Scan is not affiliated with Copart, IAA, or any auction platform.
+        </div>
       </div>
     </div>
   );

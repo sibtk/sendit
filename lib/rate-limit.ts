@@ -7,12 +7,12 @@ function createServiceClient() {
   return createClient(url, serviceKey);
 }
 
-// TODO: re-enable limits before launch
-const ANON_LIMIT = Infinity; // per week (testing: was 1)
-const FREE_LIMIT = Infinity; // per week (testing: was 3)
-const PRO_LIMIT = Infinity;
+const ANON_LIMIT = 1;      // per week — one free hit, then sign up
+const FREE_LIMIT = 3;      // per week — enough to get hooked, then upgrade
+const PRO_LIMIT = 13;      // per week (~50/month)
+const DEALER_LIMIT = 250;  // per week (~1000/month) — power users, still 53% margin
 
-export type UserTier = "anonymous" | "free" | "pro";
+export type UserTier = "anonymous" | "free" | "pro" | "dealer";
 
 interface RateLimitResult {
   allowed: boolean;
@@ -48,11 +48,11 @@ export async function checkRateLimit(
   fingerprint: string | null,
   tier: UserTier
 ): Promise<RateLimitResult> {
-  if (tier === "pro") {
-    return { allowed: true, remaining: Infinity, limit: PRO_LIMIT, tier, resetAt: "" };
+  if (tier === "dealer") {
+    return { allowed: true, remaining: DEALER_LIMIT, limit: DEALER_LIMIT, tier, resetAt: "" };
   }
 
-  const limit = tier === "free" ? FREE_LIMIT : ANON_LIMIT;
+  const limit = tier === "pro" ? PRO_LIMIT : tier === "free" ? FREE_LIMIT : ANON_LIMIT;
   const weekStart = getWeekStart();
   const supabase = createServiceClient();
 

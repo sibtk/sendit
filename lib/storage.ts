@@ -4,7 +4,7 @@ const STORAGE_KEY = "sendit_analyses";
 const PROMPT_VERSION_KEY = "sendit_prompt_version";
 
 // Bump this when the prompt changes significantly — old results get marked stale
-export const CURRENT_PROMPT_VERSION = 2;
+export const CURRENT_PROMPT_VERSION = 3;
 
 interface StoredAnalysis {
   analysis: FullAnalysis;
