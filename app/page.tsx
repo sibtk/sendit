@@ -35,7 +35,7 @@ function HomeContent() {
 
   // Settings loaded from /settings page
   const [settings, setSettings] = useState(loadSettings());
-  const [userTier, setUserTier] = useState<string>("free");
+  const [userTier, setUserTier] = useState<string | null>(null);
 
   // Check if logged-in user needs onboarding + get tier
   useEffect(() => {
@@ -206,7 +206,7 @@ function HomeContent() {
                 Try it free — no account or card required.
               </p>
             )}
-            {user && userTier === "free" && (
+            {user && userTier && userTier === "free" && (
               <div className="mb-8 flex items-center gap-3">
                 <a
                   href="/pricing"

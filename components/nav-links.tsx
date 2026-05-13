@@ -5,8 +5,11 @@ import { useEffect, useState } from "react";
 import { createBrowserClient } from "@/lib/auth";
 
 export function NavLinks() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [tier, setTier] = useState<string | null>(null);
+
+  // Don't render anything until auth resolves — prevents flash
+  if (loading) return null;
 
   useEffect(() => {
     if (!user) return;
@@ -50,8 +53,10 @@ export function NavLinks() {
 }
 
 export function TierBadge() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [tier, setTier] = useState<string | null>(null);
+
+  if (loading) return null;
 
   useEffect(() => {
     if (!user) { setTier(null); return; }
