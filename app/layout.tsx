@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { UserMenu } from "@/components/auth/user-menu";
 import { NavLinks, TierBadge } from "@/components/nav-links";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -103,6 +104,7 @@ export default function RootLayout({
             </div>
           </footer>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
