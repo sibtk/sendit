@@ -20,7 +20,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     for (const to of destinations) {
       if (from !== to) {
         crossStatePages.push({
-          url: `${baseUrl}/tools/title-laws/${from}-to-${to}`,
+          url: `${baseUrl}/tools/title-transfer/${from}-to-${to}`,
           lastModified: new Date(),
           changeFrequency: "monthly" as const,
           priority: 0.6,

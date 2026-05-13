@@ -550,7 +550,7 @@ export default function AnalysisResults({
                       <span>·</span>
                       <span>Inspection: {toLaw.inspectionCost ? `$${toLaw.inspectionCost}` : "none"}</span>
                       {toLaw.ageExemptions && <span className="text-green-400 hidden sm:inline">{toLaw.ageExemptions}</span>}
-                      <a href={hasComboPage ? `/tools/title-laws/${fromSlug}-to-${toSlug}` : `/tools/title-laws/${toSlug}`} className="text-[#7dd3fc]/50 hover:text-[#7dd3fc] ml-auto shrink-0">
+                      <a href={hasComboPage ? `/tools/title-transfer/${fromSlug}-to-${toSlug}` : `/tools/title-laws/${toSlug}`} className="text-[#7dd3fc]/50 hover:text-[#7dd3fc] ml-auto shrink-0">
                         {hasComboPage ? "Transfer guide →" : "Details →"}
                       </a>
                     </div>
