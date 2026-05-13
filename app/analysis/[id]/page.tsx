@@ -7,22 +7,26 @@ import { getAnalysis, deleteAnalysis, CURRENT_PROMPT_VERSION } from "@/lib/stora
 import { createBrowserClient } from "@/lib/auth";
 import AnalysisResults from "@/components/analysis/analysis-results";
 import WatchButton from "@/components/flips/watch-button";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export default function AnalysisPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const id = params.id as string;
 
   const [analysis, setAnalysis] = useState<FullAnalysis | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
   const [stale, setStale] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    // Try localStorage first
+    // Try localStorage first — if it's here, they own it
     const stored = getAnalysis(id);
     if (stored) {
       setAnalysis(stored.analysis);
+      setIsOwner(true);
       if (stored.promptVersion !== CURRENT_PROMPT_VERSION) {
         setStale(true);
       }
@@ -40,12 +44,10 @@ export default function AnalysisPage() {
           .maybeSingle();
 
         if (data && data.listing_data) {
-          // listing_data contains the full FullAnalysis object
           const full = data.listing_data as FullAnalysis;
           if (full.analysis) {
             setAnalysis(full);
           } else {
-            // Old format fallback
             setAnalysis({
               id: data.id,
               listing: data.listing_data,
@@ -60,6 +62,8 @@ export default function AnalysisPage() {
               createdAt: data.created_at,
             });
           }
+          // Check ownership — if user_id matches current user
+          setIsOwner(!!user && data.user_id === user.id);
         } else {
           setNotFound(true);
         }
@@ -67,7 +71,7 @@ export default function AnalysisPage() {
         setNotFound(true);
       }
     })();
-  }, [id]);
+  }, [id, user]);
 
   if (notFound) {
     return (
@@ -112,7 +116,19 @@ export default function AnalysisPage() {
           >
             + New
           </button>
-          {analysis && <WatchButton analysisId={id} analysis={analysis} />}
+          {isOwner && analysis && <WatchButton analysisId={id} analysis={analysis} />}
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              const btn = document.activeElement as HTMLButtonElement;
+              const orig = btn.textContent;
+              btn.textContent = "Copied!";
+              setTimeout(() => { btn.textContent = orig; }, 1500);
+            }}
+            className="rounded-md sm:rounded-lg border border-white/[0.08] px-2 sm:px-3.5 py-1 sm:py-1.5 text-[10px] sm:text-[12px] text-white/40 hover:text-white/60 transition-all"
+          >
+            Share
+          </button>
           {analysis?.listing?.url && (
             <a
               href={analysis.listing.url}
@@ -123,21 +139,23 @@ export default function AnalysisPage() {
               View Listing ↗
             </a>
           )}
-          <button
-            onClick={() => {
-              const url = analysis?.listing?.url;
-              if (url) {
-                deleteAnalysis(id);
-                router.push(`/?url=${encodeURIComponent(url)}&fresh=true`);
-              } else {
-                router.push("/");
-              }
-            }}
-            className="rounded-md sm:rounded-lg border border-white/[0.08] px-2 sm:px-3.5 py-1 sm:py-1.5 text-[10px] sm:text-[12px] text-white/40 hover:text-white/60 transition-all"
-          >
-            Re-analyze
-          </button>
-          {stale && (
+          {isOwner && (
+            <button
+              onClick={() => {
+                const url = analysis?.listing?.url;
+                if (url) {
+                  deleteAnalysis(id);
+                  router.push(`/?url=${encodeURIComponent(url)}&fresh=true`);
+                } else {
+                  router.push("/");
+                }
+              }}
+              className="rounded-md sm:rounded-lg border border-white/[0.08] px-2 sm:px-3.5 py-1 sm:py-1.5 text-[10px] sm:text-[12px] text-white/40 hover:text-white/60 transition-all"
+            >
+              Re-analyze
+            </button>
+          )}
+          {stale && isOwner && (
             <span className="hidden sm:inline rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-2.5 py-1 text-[11px] font-medium text-yellow-400">
               Outdated
             </span>
@@ -145,7 +163,28 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      <AnalysisResults analysis={analysis} />
+      {/* Signup CTA for anonymous viewers */}
+      {!user && !isOwner && analysis && (
+        <div className="mb-4 rounded-xl border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.03] px-5 py-4 flex items-center justify-between">
+          <p className="text-[13px] text-[#a1a1aa]">Want to analyze your own cars? <span className="text-[#7dd3fc]">Try it free.</span></p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/login")}
+              className="rounded-lg bg-[#7dd3fc] px-4 py-1.5 text-[12px] font-semibold text-[#0a0a0b] hover:bg-[#a5e4ff] transition-all"
+            >
+              Sign up free
+            </button>
+            <button
+              onClick={() => router.push("/pricing")}
+              className="rounded-lg border border-white/[0.08] px-4 py-1.5 text-[12px] text-white/40 hover:text-white/60 transition-all"
+            >
+              Plans
+            </button>
+          </div>
+        </div>
+      )}
+
+      <AnalysisResults analysis={analysis} isOwner={isOwner} />
     </div>
   );
 }

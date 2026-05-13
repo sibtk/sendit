@@ -73,7 +73,7 @@ function PricingContent() {
           Stop guessing. Start profiting.
         </h1>
         <p className="text-[#52525b] text-lg">
-          One bad buy costs more than a year of SendIt.
+          One bad buy costs more than a year of sendit scan.
         </p>
       </div>
 
@@ -157,7 +157,7 @@ function PricingContent() {
       </div>
 
       <p className="text-center text-[12px] text-[#3f3f46] mt-8">
-        Cancel anytime. One avoided bad buy pays for years of SendIt.
+        Cancel anytime. One avoided bad buy pays for years of sendit scan.
       </p>
     </div>
   );

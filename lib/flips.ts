@@ -27,6 +27,16 @@ export async function watchAnalysis(userId: string, analysis: FullAnalysis): Pro
   const sb = getClient();
   const { listing, analysis: a } = analysis;
 
+  // Prevent duplicate watches — check by analysis_id or lot_number
+  const { data: existing } = await sb.from("flips")
+    .select("id")
+    .eq("user_id", userId)
+    .or(`analysis_id.eq.${analysis.id},lot_number.eq.${listing.lotNumber}`)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return existing as unknown as Flip;
+
   const { data, error } = await sb.from("flips").insert({
     user_id: userId,
     analysis_id: analysis.id,

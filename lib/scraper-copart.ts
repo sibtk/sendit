@@ -102,18 +102,23 @@ export async function scrapeCopart(lotNumber: string): Promise<ListingData> {
 
   const lot: CopartLotData = detailsJson.data?.lotDetails || {};
 
-  // Fetch images (same fallback)
+  // Fetch images with labels (same fallback)
   let imageUrls: string[] = [];
+  const imageLabelMap: Record<string, string> = {};
   try {
     const imagesRes = await fetchWithFallback(`${COPART_IMAGES_API}/${lotNumber}/USA`);
     const imagesJson = await imagesRes.json();
-    // Copart uses two different formats: FULL_IMAGE array or content array with fullUrl
     const imagesOld = imagesJson.data?.imagesList?.FULL_IMAGE || [];
     const imagesNew = imagesJson.data?.imagesList?.content || [];
     const allImages = [...imagesOld, ...imagesNew];
-    imageUrls = allImages
-      .map((img: Record<string, unknown>) => (img.url || img.fullUrl || img.highResUrl || "") as string)
-      .filter((url: string) => url.length > 10);
+    for (const img of allImages) {
+      const url = ((img as Record<string, unknown>).url || (img as Record<string, unknown>).fullUrl || (img as Record<string, unknown>).highResUrl || "") as string;
+      const label = ((img as Record<string, unknown>).imageLabelCode || "") as string;
+      if (url.length > 10) {
+        imageUrls.push(url);
+        if (label) imageLabelMap[url] = label;
+      }
+    }
   } catch {
     // Images are optional, don't fail the whole scrape
   }
@@ -189,6 +194,7 @@ export async function scrapeCopart(lotNumber: string): Promise<ListingData> {
     estimatedRepairCost: null,
     auctionDate,
     imageUrls,
+    imageLabels: Object.keys(imageLabelMap).length > 0 ? imageLabelMap : undefined,
     sellerType: (lot.stt as string) === "CT" ? "fleet" as const : "insurance" as const,
   };
 }

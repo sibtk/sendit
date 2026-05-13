@@ -19,6 +19,7 @@ export default function Home() {
 
 function HomeContent() {
   const router = useRouter();
+  const { user } = useAuth();
   const [url, setUrl] = useState("");
   const [damageNotes, setDamageNotes] = useState("");
   const [sellerType, setSellerType] = useState("");
@@ -34,6 +35,20 @@ function HomeContent() {
 
   // Settings loaded from /settings page
   const [settings, setSettings] = useState(loadSettings());
+  const [userTier, setUserTier] = useState<string>("free");
+
+  // Check if logged-in user needs onboarding + get tier
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createBrowserClient();
+    supabase.from("user_profiles").select("onboarded,tier").eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (data && !data.onboarded) {
+          router.push("/onboarding");
+        }
+        if (data?.tier) setUserTier(data.tier);
+      });
+  }, [user]);
 
   // Auto-analyze if URL + fresh params are in query string (from re-analyze button)
   useEffect(() => {
@@ -163,7 +178,8 @@ function HomeContent() {
 
   return (
     <div className="mx-auto max-w-6xl px-5">
-      <div className="flex min-h-[calc(100vh-52px)] flex-col items-center justify-center pb-12 relative">
+      <style>{`body { overflow: hidden; height: 100vh; } footer { position: fixed; bottom: 0; left: 0; right: 0; }`}</style>
+      <div className="flex h-[calc(100vh-52px)] flex-col items-center justify-center relative">
 
         {!loading && (
           <div className="w-full max-w-xl">
@@ -185,9 +201,24 @@ function HomeContent() {
             <p className="mb-2 text-[15px] text-white/30">
               Paste an IAA or Copart URL. Get the verdict.
             </p>
-            <p className="mb-8 text-[12px] text-white/15">
-              Try it free — no account or card required.
-            </p>
+            {!user && (
+              <p className="mb-8 text-[12px] text-white/15">
+                Try it free — no account or card required.
+              </p>
+            )}
+            {user && userTier === "free" && (
+              <div className="mb-8 flex items-center gap-3">
+                <a
+                  href="/pricing"
+                  className="text-[12px] text-[#7dd3fc]/60 hover:text-[#7dd3fc] transition-colors"
+                >
+                  Upgrade to Pro — 50 scans/month →
+                </a>
+              </div>
+            )}
+            {user && (userTier === "pro" || userTier === "dealer") && (
+              <div className="mb-8" />
+            )}
 
             {/* URL input */}
             <div className="relative">
@@ -256,24 +287,32 @@ function HomeContent() {
               </div>
             )}
 
-            {/* Error / Rate limit */}
-            {error && (
-              <div className={`mt-4 rounded-xl border px-4 py-4 ${
-                rateLimited
-                  ? "border-[#7dd3fc]/20 bg-[#7dd3fc]/[0.04]"
-                  : "border-red-500/20 bg-red-500/[0.06]"
-              }`}>
-                <div className={`text-[13px] ${rateLimited ? "text-[#7dd3fc]" : "text-red-400"}`}>
-                  {error}
-                </div>
-                {rateLimited && (
+            {/* Error */}
+            {error && !rateLimited && (
+              <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/[0.06] px-4 py-4">
+                <div className="text-[13px] text-red-400">{error}</div>
+              </div>
+            )}
+
+            {/* Rate limit */}
+            {rateLimited && (
+              <div className="mt-4 rounded-xl border border-[#7dd3fc]/20 bg-[#7dd3fc]/[0.03] px-5 py-5 text-center">
+                <p className="text-[14px] text-[#e4e4e7] font-medium mb-1">You've used your free scan</p>
+                <p className="text-[12px] text-[#52525b] mb-4">Sign up to get 3 scans/week free. Upgrade for more.</p>
+                <div className="flex items-center justify-center gap-3">
                   <button
                     onClick={() => router.push("/login")}
-                    className="mt-3 rounded-lg bg-[#7dd3fc] px-4 py-2 text-sm font-semibold text-[#0a0a0b] hover:bg-[#a5e4ff] transition-all"
+                    className="rounded-lg bg-[#7dd3fc] px-5 py-2.5 text-[13px] font-semibold text-[#0a0a0b] hover:bg-[#a5e4ff] transition-all"
                   >
-                    Sign up free →
+                    Sign up free
                   </button>
-                )}
+                  <button
+                    onClick={() => router.push("/pricing")}
+                    className="rounded-lg border border-white/[0.08] px-5 py-2.5 text-[13px] text-white/40 hover:text-white/60 transition-all"
+                  >
+                    See plans
+                  </button>
+                </div>
               </div>
             )}
           </div>

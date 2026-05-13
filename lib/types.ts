@@ -73,6 +73,7 @@ export interface ListingData {
   estimatedRepairCost: number | null; // Insurance estimate (IAA)
   auctionDate: string | null;
   imageUrls: string[];
+  imageLabels?: Record<string, string>; // url → label (e.g. "Passenger Front Image", "DSFA")
   sellerType: "insurance" | "dealer" | "private" | "fleet" | "unknown";
 }
 
@@ -208,6 +209,7 @@ export interface AnalysisResult {
       profile: RepairProfile;
     };
     detailing: number;
+    rebuiltInspection: number;
     allIn: { low: number; high: number };
     salePrice: { low: number; high: number };
     profit: { low: number; high: number };

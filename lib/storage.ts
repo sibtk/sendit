@@ -28,6 +28,16 @@ function setStore(store: Record<string, StoredAnalysis>) {
 
 export function saveAnalysis(analysis: FullAnalysis): string {
   const store = getStore();
+
+  // Dedupe by URL — remove older analyses of the same listing
+  if (analysis.listing?.url) {
+    for (const [existingId, entry] of Object.entries(store)) {
+      if (entry.analysis.listing?.url === analysis.listing.url && existingId !== analysis.id) {
+        delete store[existingId];
+      }
+    }
+  }
+
   store[analysis.id] = {
     analysis,
     promptVersion: CURRENT_PROMPT_VERSION,

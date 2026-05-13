@@ -195,12 +195,20 @@ export async function scrapeIAA(stockNumber: string): Promise<ListingData> {
   const imageKeyMatch = html.match(/(\d{7,9})~SID~B\d{2,4}~/);
   const imageId = imageKeyMatch?.[1] || stockNumber;
 
-  // === Build image URLs using IAA's known pattern ===
-  // Full-size for UI display, small for Claude analysis (saves ~6K tokens)
+  // === Build image URLs with labels using IAA's known pattern ===
+  // Extract image labels from hidden field: "Passenger Front Image,Driver Front photo,..."
+  const labelMatch = html.match(/value="(Passenger Front[^"]+)"/);
+  const imageLabels = labelMatch ? labelMatch[1].split(",").map(l => l.trim()) : [];
+
   const imageUrls: string[] = [];
+  const imageLabelMap: Record<string, string> = {}; // url → label
   for (let i = 1; i <= actualImageCount; i++) {
     const key = `${imageId}~SID~B${branchNum}~S0~I${i}~RW2576~H1932~TH0`;
-    imageUrls.push(`https://vis.iaai.com/resizer?imageKeys=${key}&width=845&height=633`);
+    const url = `https://vis.iaai.com/resizer?imageKeys=${key}&width=845&height=633`;
+    imageUrls.push(url);
+    if (imageLabels[i - 1]) {
+      imageLabelMap[url] = imageLabels[i - 1];
+    }
   }
 
   // === Extract ACV from JSON data ===
@@ -375,6 +383,7 @@ export async function scrapeIAA(stockNumber: string): Promise<ListingData> {
       return extract("Auction Date and Time") || extract("Auction Date") || extract("Sale Date") || null;
     })(),
     imageUrls,
+    imageLabels: Object.keys(imageLabelMap).length > 0 ? imageLabelMap : undefined,
     sellerType: (() => {
       // Check Seller Type field first (IAA shows this explicitly)
       const sellerTypeField = extract("Seller Type") ||

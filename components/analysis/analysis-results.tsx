@@ -2,6 +2,7 @@
 
 import { FullAnalysis, Verdict } from "@/lib/types";
 import { getPartLinks } from "@/lib/parts-links";
+import { createBrowserClient } from "@/lib/auth";
 import { useState, useEffect, useCallback } from "react";
 
 // Persist user edits per analysis
@@ -120,8 +121,10 @@ function FlagPill({
 
 export default function AnalysisResults({
   analysis,
+  isOwner = true,
 }: {
   analysis: FullAnalysis;
+  isOwner?: boolean;
 }) {
   const { analysis: a, listing, vinDecode, fees, shipping } = analysis;
   const [expandedParts, setExpandedParts] = useState<Set<number>>(new Set());
@@ -146,6 +149,9 @@ export default function AnalysisResults({
   const [askInput, setAskInput] = useState("");
   const [askLoading, setAskLoading] = useState(false);
   const [askHistory, setAskHistory] = useState<{ q: string; a: string }[]>([]);
+  const [showReport, setShowReport] = useState(false);
+  const [reportText, setReportText] = useState("");
+  const [reportSent, setReportSent] = useState(false);
 
   async function handleAsk() {
     if (!askInput.trim() || askLoading) return;
@@ -241,8 +247,9 @@ export default function AnalysisResults({
   const liveFees = Math.round(sliderPrice * feeRate);
   const shipCost = noShipping ? 0 : (a.financials.shipping?.estimate || 0);
   const detailCost = a.financials.detailing || 0;
+  const inspectionCost = a.financials.rebuiltInspection || 0;
 
-  const liveAllInLow = sliderPrice + liveFees + shipCost + effectiveRepairLow + detailCost;
+  const liveAllInLow = sliderPrice + liveFees + shipCost + effectiveRepairLow + detailCost + inspectionCost;
   const liveAllInHigh = sliderPrice + liveFees + shipCost + effectiveRepairHigh + detailCost;
   const liveProfitLow = effectiveSellLow - liveAllInHigh;
   const liveProfitHigh = effectiveSellHigh - liveAllInLow;
@@ -371,8 +378,8 @@ export default function AnalysisResults({
             </div>
           )}
 
-          {/* Notes */}
-          <div className="hidden lg:block mt-4">
+          {/* Notes — owner only */}
+          {isOwner && <div className="hidden lg:block mt-4">
             <textarea
               value={userNotes}
               onChange={(e) => setUserNotes(e.target.value)}
@@ -380,7 +387,7 @@ export default function AnalysisResults({
               rows={4}
               className="w-full rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3 text-[13px] text-white/60 placeholder-white/15 resize-none focus:border-[#7dd3fc]/20 focus:outline-none"
             />
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -653,11 +660,11 @@ export default function AnalysisResults({
                   >
                     <td className="py-2 sm:py-3 pr-2 sm:pr-4 max-w-[140px] sm:max-w-none">
                       <div className="flex items-start gap-1.5">
-                        <button
+                        {isOwner && <button
                           onClick={() => setDeletedParts(prev => [...prev, i])}
                           className="mt-0.5 text-[#3f3f46] hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-all text-[11px] shrink-0"
                           title="Remove part"
-                        >✕</button>
+                        >✕</button>}
                         <div>
                           <span className="text-[#e4e4e7] text-[12px] sm:text-[13px] line-clamp-1">{part.name}</span>
                       {(() => {
@@ -769,8 +776,8 @@ export default function AnalysisResults({
                     </td>
                   </tr>
                 ))}
-                {/* Add part row */}
-                {showAddPart ? (
+                {/* Add part row — owner only */}
+                {isOwner && showAddPart ? (
                   <tr className="border-b border-[#1a1a1e]">
                     <td colSpan={4} className="py-2">
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 mb-2">
@@ -829,7 +836,7 @@ export default function AnalysisResults({
                       </div>
                     </td>
                   </tr>
-                ) : (
+                ) : isOwner ? (
                   <tr className="border-b border-[#1a1a1e]">
                     <td colSpan={4} className="py-2">
                       <button
@@ -848,7 +855,7 @@ export default function AnalysisResults({
                       )}
                     </td>
                   </tr>
-                )}
+                ) : null}
                 {a.repairEstimate.laborHours > 0 && (
                   <tr className="row-stripe border-b border-[#1a1a1e]">
                     <td className="py-2 pr-4 text-[#a1a1aa] text-[13px]" colSpan={2}>
@@ -976,6 +983,14 @@ export default function AnalysisResults({
                 ${fmt(a.financials.detailing)}
               </span>
             </div>
+            {inspectionCost > 0 && (
+              <div className="flex justify-between py-2.5 border-b border-dashed border-[#1e1e21]">
+                <span className="text-[14px] text-[#71717a]">Rebuilt inspection</span>
+                <span className="num-md text-[#d4d4d8]">
+                  ${fmt(inspectionCost)}
+                </span>
+              </div>
+            )}
 
             {/* Subtotal line */}
             <div className="my-1 border-t border-[#27272a]" />
@@ -1031,7 +1046,7 @@ export default function AnalysisResults({
           <p className="text-[12px] text-[#52525b] mb-6">Drag to see your profit at any purchase price</p>
 
           {(() => {
-            const fixedCosts = shipCost + detailCost;
+            const fixedCosts = shipCost + detailCost + inspectionCost;
             const repairMid = (effectiveRepairLow + effectiveRepairHigh) / 2;
             const sellMid = (effectiveSellLow + effectiveSellHigh) / 2;
             const sellHigh = effectiveSellHigh;
@@ -1461,8 +1476,8 @@ export default function AnalysisResults({
           </div>
         )}
 
-        {/* ---- ASK A QUESTION ---- */}
-        <div className="xl:col-span-2 card p-4 sm:p-7">
+        {/* ---- ASK A QUESTION — owner only ---- */}
+        {isOwner && <div className="xl:col-span-2 card p-4 sm:p-7">
           <h3 className="section-header mb-4">Ask about this car</h3>
 
           {/* Q&A history */}
@@ -1488,7 +1503,7 @@ export default function AnalysisResults({
               value={askInput}
               onChange={(e) => setAskInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !askLoading && handleAsk()}
-              placeholder="How much would ECU reprogramming cost?"
+              placeholder="Ask anything about this car..."
               className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[13px] text-white/60 placeholder-white/20 focus:border-[#7dd3fc]/30 focus:outline-none"
             />
             <button
@@ -1499,11 +1514,65 @@ export default function AnalysisResults({
               {askLoading ? "..." : "Ask"}
             </button>
           </div>
-        </div>
+        </div>}
+
+        {/* Report issue */}
+        {isOwner && (
+          <div className="xl:col-span-2 mt-4">
+            {reportSent ? (
+              <div className="text-[12px] text-[#52525b] text-center py-2">Thanks for the feedback.</div>
+            ) : showReport ? (
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                <p className="text-[12px] text-[#71717a] mb-2">What did we get wrong? Missing damage, wrong estimate, bad comps?</p>
+                <textarea
+                  value={reportText}
+                  onChange={(e) => setReportText(e.target.value)}
+                  placeholder="Tell us what's off..."
+                  rows={3}
+                  autoFocus
+                  className="w-full rounded-lg border border-white/[0.06] bg-transparent px-3 py-2 text-[13px] text-white/60 placeholder-white/15 resize-none focus:border-[#7dd3fc]/20 focus:outline-none mb-2"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!reportText.trim()) return;
+                      const sb = createBrowserClient();
+                      sb.from("analytics_events").insert({
+                        event_type: "feedback",
+                        platform: listing.platform,
+                        vehicle_make: a.vehicle.make,
+                        vehicle_model: a.vehicle.model,
+                        vehicle_year: a.vehicle.year,
+                        part_name: reportText.trim(),
+                      }).then(() => {});
+                      setReportSent(true);
+                    }}
+                    className="rounded-lg bg-white/[0.05] border border-white/[0.08] px-4 py-1.5 text-[12px] text-white/50 hover:text-white/70 transition-all"
+                  >
+                    Submit
+                  </button>
+                  <button
+                    onClick={() => setShowReport(false)}
+                    className="text-[11px] text-[#3f3f46] hover:text-[#52525b]"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowReport(true)}
+                className="text-[11px] text-[#3f3f46] hover:text-[#52525b] transition-colors"
+              >
+                Report an issue with this scan
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Disclaimer */}
         <div className="xl:col-span-2 text-[10px] text-[#3f3f46] leading-relaxed mt-4 px-1">
-          Estimates are for informational purposes only and do not constitute professional appraisals or financial advice. AI damage assessment may not identify all damage — always inspect vehicles in person before purchasing. Repair costs are estimates that vary by location, shop, and parts availability. Market values are based on available data and may not reflect actual sale prices. User assumes all risk on purchase decisions. SendIt Scan is not affiliated with Copart, IAA, or any auction platform.
+          Estimates are for informational purposes only and do not constitute professional appraisals or financial advice. AI damage assessment may not identify all damage — always inspect vehicles in person before purchasing. Repair costs are estimates that vary by location, shop, and parts availability. Market values are based on available data and may not reflect actual sale prices. User assumes all risk on purchase decisions. sendit scan is not affiliated with Copart, IAA, or any auction platform.
         </div>
       </div>
     </div>

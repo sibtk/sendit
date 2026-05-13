@@ -12,22 +12,19 @@ import { buildSystemPrompt, buildUserPrompt } from "./prompt";
 
 const client = new Anthropic();
 
-// Photo angle labels — IAA uses these in their image descriptions
-const ANGLE_PRIORITY: { keywords: string[]; label: string; priority: number }[] = [
-  { keywords: ["passenger front", "pass front", "right front", "rf"], label: "FRONT-RIGHT", priority: 1 },
-  { keywords: ["driver front", "driv front", "left front", "lf", "front left"], label: "FRONT-LEFT", priority: 2 },
-  { keywords: ["driver rear", "driv rear", "left rear", "lr", "rear left"], label: "REAR-LEFT", priority: 3 },
-  { keywords: ["passenger rear", "pass rear", "right rear", "rr", "rear right"], label: "REAR-RIGHT", priority: 4 },
-  { keywords: ["damage", "dmg", "impact"], label: "DAMAGE-CLOSEUP", priority: 5 },
-  { keywords: ["front", "frt"], label: "FRONT", priority: 6 },
-  { keywords: ["rear", "back"], label: "REAR", priority: 7 },
-  { keywords: ["left", "driver"], label: "LEFT-SIDE", priority: 8 },
-  { keywords: ["right", "passenger"], label: "RIGHT-SIDE", priority: 9 },
-  { keywords: ["interior front", "int front", "cabin"], label: "INTERIOR", priority: 10 },
+// Labels we want for damage assessment — priority order
+// IAA labels: "Passenger Front Image", "Driver Front photo", "Driver Rear photo", "Passenger Rear photo", "Damage photo"
+// Copart labels: "PSFA", "DSFA", "DSRA", "PSRA", "DENT"
+const WANTED_LABELS: { match: string[]; label: string; priority: number }[] = [
+  { match: ["passenger front", "psfa"], label: "FRONT-RIGHT", priority: 1 },
+  { match: ["driver front", "dsfa"], label: "FRONT-LEFT", priority: 2 },
+  { match: ["driver rear", "dsra"], label: "REAR-LEFT", priority: 3 },
+  { match: ["passenger rear", "psra"], label: "REAR-RIGHT", priority: 4 },
+  { match: ["damage", "dent"], label: "DAMAGE", priority: 5 },
 ];
 
-// Skip these — no damage info. Use specific patterns to avoid false matches on URLs
-const SKIP_KEYWORDS = ["odometer", "vin plate", "key photo", "manufacturer vin", "engine photo", "misc parts", "not attached", "title doc"];
+// Skip these completely
+const SKIP_LABELS = ["odometer", "odom", "vin", "vins", "key", "engine", "engn", "misc", "video", "manufacturer", "ckpt", "dashboard"];
 
 interface LabeledPhoto {
   url: string;
@@ -35,46 +32,42 @@ interface LabeledPhoto {
   priority: number;
 }
 
-function selectAndLabelPhotos(imageUrls: string[], maxPhotos: number = 4): LabeledPhoto[] {
-  // IAA standard photo order: 1=front-right, 2=front-left, 3=rear-left, 4=rear-right
-  // Copart varies but generally similar
-  const DEFAULT_LABELS = ["FRONT-RIGHT", "FRONT-LEFT", "REAR-LEFT", "REAR-RIGHT", "DAMAGE-CLOSEUP", "EXTRA"];
+function selectAndLabelPhotos(
+  imageUrls: string[],
+  imageLabels?: Record<string, string>
+): LabeledPhoto[] {
+  const selected: LabeledPhoto[] = [];
+  const labels = imageLabels || {};
 
-  const labeled: LabeledPhoto[] = [];
+  for (const url of imageUrls) {
+    const rawLabel = (labels[url] || "").toLowerCase();
 
-  for (let i = 0; i < imageUrls.length; i++) {
-    const url = imageUrls[i];
-    const lower = url.toLowerCase();
+    // Skip unwanted photos
+    if (rawLabel && SKIP_LABELS.some(skip => rawLabel.includes(skip))) continue;
 
-    // Skip non-damage photos — only for URLs with descriptive text (not IAA index URLs)
-    const hasDescriptiveText = !lower.includes("vis.iaai.com") && !lower.includes("cs.copart.com");
-    if (hasDescriptiveText && SKIP_KEYWORDS.some(kw => lower.includes(kw))) continue;
-
-    // Try to match a known angle from URL
-    let label: string | null = null;
-    let priority = 50 + i;
-    for (const angle of ANGLE_PRIORITY) {
-      if (angle.keywords.some(kw => lower.includes(kw))) {
-        label = angle.label;
-        priority = angle.priority;
+    // Try to match a wanted label
+    let matched = false;
+    for (const wanted of WANTED_LABELS) {
+      if (wanted.match.some(m => rawLabel.includes(m))) {
+        selected.push({ url, label: wanted.label, priority: wanted.priority });
+        matched = true;
         break;
       }
     }
 
-    // If no keyword match, assign default label by position
-    // IAA photos are consistently ordered: front-right, front-left, rear-left, rear-right
-    if (!label) {
-      const defaultIdx = labeled.length;
-      label = defaultIdx < DEFAULT_LABELS.length ? DEFAULT_LABELS[defaultIdx] : `PHOTO-${defaultIdx + 1}`;
-      priority = defaultIdx + 1;
+    // If no label data at all, include by position (first 5 unlabeled photos)
+    if (!matched && !rawLabel) {
+      const DEFAULT_LABELS = ["FRONT-RIGHT", "FRONT-LEFT", "REAR-LEFT", "REAR-RIGHT", "DAMAGE"];
+      const idx = selected.length;
+      if (idx < DEFAULT_LABELS.length) {
+        selected.push({ url, label: DEFAULT_LABELS[idx], priority: idx + 1 });
+      }
     }
-
-    labeled.push({ url, label, priority });
   }
 
-  // Sort by priority, take top N
-  labeled.sort((a, b) => a.priority - b.priority);
-  return labeled.slice(0, maxPhotos);
+  // Sort by priority — all DAMAGE photos come after the 4 corners
+  selected.sort((a, b) => a.priority - b.priority);
+  return selected;
 }
 
 // Downsize IAA image URLs for Claude analysis (saves ~75% on tokens)
@@ -156,8 +149,8 @@ export async function analyzeVehicle(params: {
   // Build message content with labeled photos
   const content: Anthropic.MessageCreateParams["messages"][0]["content"] = [];
 
-  // Select and label 5 best exterior photos in consistent order
-  const labeledPhotos = selectAndLabelPhotos(listing.imageUrls || [], 5);
+  // Select photos by label — gets all 4 corners + all damage photos
+  const labeledPhotos = selectAndLabelPhotos(listing.imageUrls || [], listing.imageLabels);
   const photoResults = await Promise.all(
     labeledPhotos.map(async (lp) => ({
       label: lp.label,

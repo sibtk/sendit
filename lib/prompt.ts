@@ -136,12 +136,6 @@ If the listing shows "Airbags: Deployed" or airbag deployment is visible in phot
 - Adjust for repair profile (used parts at own shop vs OEM at dealer)
 DO NOT forget airbags. This is one of the most commonly overlooked costs in flip analysis.
 
-DETAILING COSTS:
-Always include a detailing line item in repair estimates. Every flip needs a detail before sale:
-- Basic detail (economy cars): $150-$200 (exterior wash, interior vacuum/wipe, engine bay rinse)
-- Full detail (mid-range): $200-$300 (clay bar, polish, shampoo carpets, dress trim)
-- Premium detail (luxury/sports): $300-$500 (paint correction, leather conditioning, full engine bay)
-Choose based on the vehicle's price tier.
 
 FLIP MARGIN THRESHOLDS — SCALE WITH VEHICLE VALUE:
 Thresholds are percentage-based ROI, not fixed dollar amounts. A $500 profit on a $3K car is a decent flip. A $500 profit on a $40K car is a waste of time.
@@ -261,6 +255,7 @@ Schema:
       "profile": "${repairProfile}"
     },
     "detailing": number,
+    "rebuiltInspection": number,
     "allIn": { "low": number, "high": number },
     "salePrice": { "low": number, "high": number },
     "profit": { "low": number, "high": number },

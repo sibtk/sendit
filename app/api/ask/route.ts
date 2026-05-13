@@ -13,7 +13,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No question" }, { status: 400 });
     }
 
-    const systemPrompt = `You are a car flip expert assistant. Answer questions concisely (2-4 sentences max) about repair costs, mechanical issues, market trends, or anything related to flipping cars. Give specific dollar ranges when asked about costs. Be direct and practical.`;
+    const systemPrompt = `You are a car flip expert assistant for sendit scan. Answer questions concisely (2-4 sentences max) about repair costs, mechanical issues, market trends, parts, or anything related to this specific vehicle and flipping cars.
+
+RULES:
+- Only answer questions related to cars, auto repair, parts, flipping, auctions, or this specific vehicle.
+- If someone asks about anything unrelated to cars (homework, personal advice, coding, etc.), respond: "I can only help with questions about this car and auto repair."
+- Give specific dollar ranges when asked about costs.
+- Be direct and practical.`;
 
     const userPrompt = `Vehicle: ${vehicleSummary || "Unknown"}
 ${analysisContext ? `\nAnalysis context: ${analysisContext}` : ""}

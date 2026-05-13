@@ -457,7 +457,20 @@ export async function POST(request: NextRequest) {
     const purchase = a.financials.purchase;
     const auctionFeeAmount = finalFees.totalFees;
     const shipCost = a.financials.shipping?.estimate || 0;
-    const detailCost = a.financials.detailing || 0;
+    // Detailing cost by vehicle tier
+    const luxuryMakes = ["BMW", "MERCEDES-BENZ", "AUDI", "LEXUS", "PORSCHE", "MASERATI", "JAGUAR", "LAND ROVER", "FERRARI", "LAMBORGHINI", "MCLAREN", "BENTLEY", "ROLLS-ROYCE", "ASTON MARTIN", "LOTUS", "ALFA ROMEO", "RIVIAN", "TESLA"];
+    const midMakes = ["DODGE", "GMC", "JEEP", "RAM", "GENESIS", "ACURA", "INFINITI", "VOLVO", "BUICK", "CHRYSLER", "LINCOLN", "CADILLAC", "MINI"];
+    const makeUp = (listing.make || "").toUpperCase();
+    const detailCost = luxuryMakes.includes(makeUp) ? 400
+      : midMakes.includes(makeUp) ? 250
+      : 200;
+    a.financials.detailing = detailCost;
+
+    // Rebuilt inspection — $150 if salvage/rebuilt title, $0 if clean
+    const titleLower = (listing.titleStatus || "").toLowerCase() + " " + (listing.titleBrand || "").toLowerCase();
+    const needsInspection = titleLower.includes("salvage") || titleLower.includes("rebuilt") || titleLower.includes("rebuildable");
+    const inspectionCost = needsInspection ? 150 : 0;
+    a.financials.rebuiltInspection = inspectionCost;
     const repLow = a.repairEstimate.total.low;
     const repHigh = a.repairEstimate.total.high;
 
@@ -469,8 +482,8 @@ export async function POST(request: NextRequest) {
     a.financials.repairs.low = repLow;
     a.financials.repairs.high = repHigh;
 
-    a.financials.allIn.low = purchase + auctionFeeAmount + shipCost + repLow + detailCost;
-    a.financials.allIn.high = purchase + auctionFeeAmount + shipCost + repHigh + detailCost;
+    a.financials.allIn.low = purchase + auctionFeeAmount + shipCost + repLow + detailCost + inspectionCost;
+    a.financials.allIn.high = purchase + auctionFeeAmount + shipCost + repHigh + detailCost + inspectionCost;
 
     a.financials.profit.low = a.financials.salePrice.low - a.financials.allIn.high;
     a.financials.profit.high = a.financials.salePrice.high - a.financials.allIn.low;
@@ -483,8 +496,8 @@ export async function POST(request: NextRequest) {
     // Fix scenarios if they exist
     if (a.financials.scenarios) {
       // Recalc scenario profits using our corrected numbers
-      const bestAllIn = purchase + auctionFeeAmount + shipCost + repLow + detailCost;
-      const worstAllIn = purchase + auctionFeeAmount + shipCost + Math.round(repHigh * 1.3) + detailCost;
+      const bestAllIn = purchase + auctionFeeAmount + shipCost + repLow + detailCost + inspectionCost;
+      const worstAllIn = purchase + auctionFeeAmount + shipCost + Math.round(repHigh * 1.3) + detailCost + inspectionCost;
       const expectedAllIn = midAllIn;
 
       a.financials.scenarios.bestCase.allIn = bestAllIn;
@@ -506,7 +519,7 @@ export async function POST(request: NextRequest) {
 
     // Fix bid ceilings — compute from our corrected values
     if (a.bidCeilings) {
-      const fixedPerCar = auctionFeeAmount + shipCost + detailCost;
+      const fixedPerCar = auctionFeeAmount + shipCost + detailCost + inspectionCost;
       const midRepair = (repLow + repHigh) / 2;
       const midSell = (a.financials.salePrice.low + a.financials.salePrice.high) / 2;
       // steal = 30%+ ROI → purchase where (sell - purchase - fees - repairs) / (purchase + fees + repairs) > 0.3

@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
       success_url: `${request.nextUrl.origin}/pricing?success=true`,
       cancel_url: `${request.nextUrl.origin}/pricing?canceled=true`,
       customer_email: email || undefined,
