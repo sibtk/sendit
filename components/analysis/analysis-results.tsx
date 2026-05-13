@@ -287,7 +287,7 @@ export default function AnalysisResults({
                     All-in
                   </div>
                   <div className={`mono text-[13px] sm:text-xl font-bold truncate ${isOverridden ? "text-[#7dd3fc]" : "text-[#e4e4e7]"}`}>
-                    ${fmt(liveAllInLow)}
+                    ${fmt(Math.round(liveMidAllIn))}
                   </div>
                 </div>
 
@@ -297,7 +297,7 @@ export default function AnalysisResults({
                     Sell at
                   </div>
                   <div className={`mono text-[13px] sm:text-xl font-bold truncate ${sellOverride ? "text-[#7dd3fc]" : "text-[#e4e4e7]"}`}>
-                    ${fmt(effectiveSellLow)}
+                    ${fmt(Math.round((effectiveSellLow + effectiveSellHigh) / 2))}
                   </div>
                 </div>
 
@@ -307,9 +307,9 @@ export default function AnalysisResults({
                     Profit
                   </div>
                   <div
-                    className={`mono text-[13px] sm:text-xl font-bold truncate ${liveProfitLow > 0 ? "text-buy" : "text-pass"}`}
+                    className={`mono text-[13px] sm:text-xl font-bold truncate ${liveMidProfit > 0 ? "text-buy" : "text-pass"}`}
                   >
-                    {liveProfitLow > 0 ? "+" : ""}${fmt(liveProfitLow)}
+                    {liveMidProfit > 0 ? "+" : ""}${fmt(Math.round(liveMidProfit))}
                   </div>
                 </div>
 
