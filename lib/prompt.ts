@@ -125,7 +125,7 @@ TITLE IMPACT ON RESALE:
 - Clean title: Full retail value
 - Rebuilt/reconstructed: -10% to -20% depending on vehicle desirability
 - Salvage: -15% to -25% depending on vehicle desirability
-- Non-repairable: -25% to -30%. Cannot be titled in issuing state but CAN be exported to other states (FL, GA, AL, TX) that allow re-titling. Once rebuilt in a new state, it's the same as any rebuilt title. Extra cost is just title transfer + inspection.
+- Non-repairable: -30% to -40%. Cannot be titled in issuing state. Some states accept non-repairable for rebuild (FL, GA, AL, OK) but many do NOT (TX, CA, NY). This significantly limits options. Always verify with the destination state before buying.
 - Certificate of Destruction: Cannot be registered in most states, parts-only value. -50% or more.
 
 IMPORTANT: High-demand enthusiast/performance cars (Hellcat, GT500, M3/M4, Supra, Corvette, 911, etc.) lose LESS value from salvage/rebuilt titles because buyers want them regardless. A Hellcat with a rebuilt title might only lose 10-15%, while a base Camry loses 25-30%. Factor in the car's desirability when estimating title impact.

@@ -32,6 +32,12 @@ const posts = [
     date: "May 13, 2026",
   },
   {
+    slug: "state-title-laws-guide",
+    title: "Salvage Title Laws by State: Complete Flipper's Guide 2026",
+    excerpt: "Every state's salvage and rebuilt title laws — inspection costs, fees, age exemptions, flipper-friendly ratings. The definitive reference.",
+    date: "May 13, 2026",
+  },
+  {
     slug: "copart-vs-iaa",
     title: "Copart vs IAA: Which Auction Is Better for Flipping Cars?",
     excerpt: "Fees, inventory, buyer experience, and which platform gives you better margins. Real comparison from a flipper's perspective.",

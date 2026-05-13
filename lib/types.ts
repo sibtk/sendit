@@ -75,6 +75,7 @@ export interface ListingData {
   imageUrls: string[];
   imageLabels?: Record<string, string>; // url → label (e.g. "Passenger Front Image", "DSFA")
   sellerType: "insurance" | "dealer" | "private" | "fleet" | "unknown";
+  bidRequirements?: string[]; // e.g. ["Public", "Dealer", "Exporter"] — who can bid
 }
 
 // ============================================

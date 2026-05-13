@@ -410,6 +410,18 @@ export async function scrapeIAA(stockNumber: string): Promise<ListingData> {
     })(),
     imageUrls,
     imageLabels: Object.keys(imageLabelMap).length > 0 ? imageLabelMap : undefined,
+    bidRequirements: (() => {
+      // Extract "WhoCanBuy" from JSON — codes like "PUB,DEA,DIS,REB,SCR,EXP,OLB"
+      const wcbMatch = html.match(/"WhoCanBuy"\s*:\s*"([^"]+)"/i);
+      if (!wcbMatch) return undefined;
+      const codes = wcbMatch[1].split(",").map(c => c.trim());
+      const codeMap: Record<string, string> = {
+        PUB: "Public", DEA: "Dealer", DIS: "Dismantler", REB: "Rebuilder",
+        SCR: "Scrapper", EXP: "Exporter", OLB: "Other Licensed Business",
+        NAL: "Non-Auto Licensed Business",
+      };
+      return codes.map(c => codeMap[c] || c).filter(Boolean);
+    })(),
     sellerType: (() => {
       // Check Seller Type field first (IAA shows this explicitly)
       const sellerTypeField = extract("Seller Type") ||

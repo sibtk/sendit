@@ -423,8 +423,22 @@ export default function AnalysisResults({
               </span>
             )}
             {listing.mileage && (
-              <span className="rounded-lg bg-[#ffffff06] border border-[#ffffff08] px-3 py-1.5 text-[13px] text-[#a1a1aa]">
+              <span className={`rounded-lg border px-3 py-1.5 text-[13px] ${
+                listing.mileage >= 150000
+                  ? "bg-red-500/8 border-red-500/20 text-red-400"
+                  : listing.mileage >= 125000
+                    ? "bg-orange-500/8 border-orange-500/20 text-orange-400"
+                    : listing.mileage >= 100000
+                      ? "bg-yellow-500/8 border-yellow-500/20 text-yellow-400"
+                      : listing.mileage < 50000
+                        ? "bg-green-500/8 border-green-500/20 text-green-400"
+                        : "bg-[#ffffff06] border-[#ffffff08] text-[#a1a1aa]"
+              }`}>
                 <span className="mono">{fmt(listing.mileage)}</span> mi
+                {listing.mileage < 50000 && <span className="ml-1.5 text-[10px]">Low miles</span>}
+                {listing.mileage >= 100000 && listing.mileage < 125000 && <span className="ml-1.5 text-[10px]">100K+</span>}
+                {listing.mileage >= 125000 && listing.mileage < 150000 && <span className="ml-1.5 text-[10px]">125K+</span>}
+                {listing.mileage >= 150000 && <span className="ml-1.5 text-[10px]">High mileage</span>}
               </span>
             )}
             {listing.titleStatus && (
@@ -447,6 +461,11 @@ export default function AnalysisResults({
                 {listing.sellerType.charAt(0).toUpperCase() + listing.sellerType.slice(1)} seller
               </span>
             )}
+            {listing.bidRequirements && !listing.bidRequirements.includes("Public") && (
+              <span className="rounded-lg bg-red-500/8 border border-red-500/20 px-3 py-1.5 text-[13px] font-medium text-red-400">
+                {listing.bidRequirements.join(" / ")} only
+              </span>
+            )}
           </div>
 
           {/* Title warning banner */}
@@ -454,25 +473,25 @@ export default function AnalysisResults({
             const title = (listing.titleStatus || "").toLowerCase();
             if (title.includes("non-repairable") || title.includes("non repairable")) {
               return (
-                <div className="mb-4 rounded-lg border border-orange-500/20 bg-orange-500/[0.04] px-4 py-3">
-                  <div className="text-[12px] font-semibold text-orange-400 mb-1">Non-Repairable Title</div>
-                  <div className="text-[11px] text-orange-400/60 leading-relaxed">Cannot be titled for road use in the issuing state. Can be exported to states like TX, FL, GA, AL that allow re-titling after inspection. Expect -35% to -40% from clean value.</div>
+                <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/[0.06] px-4 py-3 shadow-[0_0_15px_rgba(248,113,113,0.1)]">
+                  <div className="text-[12px] font-semibold text-red-400 mb-1">Non-Repairable Title</div>
+                  <div className="text-[11px] text-red-400/70 leading-relaxed">Cannot be titled for road use in the issuing state. Some states accept non-repairable for rebuild (FL, GA, AL, OK) but many do NOT (TX, CA, NY). Verify with your state's DMV before bidding. Expect -30% to -40% from clean value.</div>
                 </div>
               );
             }
             if (title.includes("certificate of destruction")) {
               return (
-                <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/[0.04] px-4 py-3">
+                <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/[0.06] px-4 py-3 shadow-[0_0_15px_rgba(248,113,113,0.15)]">
                   <div className="text-[12px] font-semibold text-red-400 mb-1">Certificate of Destruction</div>
-                  <div className="text-[11px] text-red-400/60 leading-relaxed">Cannot be registered for road use in most states. Typically parts-only value. Very limited resale options.</div>
+                  <div className="text-[11px] text-red-400/70 leading-relaxed">Cannot be registered for road use in most states. This is a parts/scrap-only vehicle. Very limited resale options — verify with your state before bidding.</div>
                 </div>
               );
             }
             if (title.includes("parts only")) {
               return (
-                <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/[0.04] px-4 py-3">
+                <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/[0.06] px-4 py-3 shadow-[0_0_15px_rgba(248,113,113,0.15)]">
                   <div className="text-[12px] font-semibold text-red-400 mb-1">Parts Only</div>
-                  <div className="text-[11px] text-red-400/60 leading-relaxed">This vehicle is designated for parts/scrap only and cannot be titled for road use.</div>
+                  <div className="text-[11px] text-red-400/70 leading-relaxed">This vehicle is designated for parts/scrap only and cannot be titled for road use.</div>
                 </div>
               );
             }
@@ -486,6 +505,61 @@ export default function AnalysisResults({
               <div className="text-[11px] text-yellow-400/60 leading-relaxed">Typically indicates mold, fluid contamination, or similar interior issues. Actual cause is unknown from listing data alone — always inspect in person before bidding.</div>
             </div>
           )}
+
+          {/* Title law info — compact two-liner */}
+          {listing.branchState && (() => {
+            try {
+              const { getStateLaw } = require("@/lib/state-title-laws");
+              const { loadSettings } = require("@/lib/settings");
+              const settings = loadSettings();
+              const fromLaw = getStateLaw(listing.branchState);
+              const userState = settings.state || null;
+              const toLaw = userState ? getStateLaw(userState) : null;
+
+              if (!fromLaw) return null;
+
+              const fromSlug = fromLaw.state.toLowerCase().replace(/\s+/g, "-");
+              const toSlug = toLaw ? toLaw.state.toLowerCase().replace(/\s+/g, "-") : null;
+              const isCrossState = toLaw && fromLaw.stateCode !== toLaw.stateCode;
+
+              // Check if combo page exists (top origins × destinations)
+              const origins = ["california", "new-york", "florida", "texas", "pennsylvania", "michigan", "ohio", "illinois", "georgia", "new-jersey"];
+              const destinations = ["texas", "florida", "oklahoma", "arkansas", "north-carolina", "georgia", "alabama", "indiana", "arizona", "illinois"];
+              const hasComboPage = isCrossState && origins.includes(fromSlug) && destinations.includes(toSlug!);
+
+              const ratingClass = (rating: string) =>
+                rating === "friendly" ? "bg-green-500/10 text-green-400" :
+                rating === "strict" ? "bg-red-500/10 text-red-400" :
+                "bg-yellow-500/10 text-yellow-400";
+
+              return (
+                <div className="mb-4 rounded-lg border border-white/[0.04] bg-white/[0.01] px-3 py-2 space-y-1.5">
+                  {/* Origin state */}
+                  <div className="flex items-center gap-2 text-[11px] text-[#52525b]">
+                    <span className={`rounded px-1.5 py-0.5 font-medium ${ratingClass(fromLaw.flipperRating)}`}>{fromLaw.stateCode}</span>
+                    <span>Car located · {fromLaw.flipperRating}</span>
+                    <span>·</span>
+                    <span>Inspection: {fromLaw.inspectionCost ? `$${fromLaw.inspectionCost}` : "none"}</span>
+                    <a href={`/tools/title-laws/${fromSlug}`} className="text-[#7dd3fc]/50 hover:text-[#7dd3fc] ml-auto shrink-0">Details →</a>
+                  </div>
+                  {/* User's state */}
+                  {isCrossState && toLaw && (
+                    <div className="flex items-center gap-2 text-[11px] text-[#52525b]">
+                      <span className={`rounded px-1.5 py-0.5 font-medium ${ratingClass(toLaw.flipperRating)}`}>{toLaw.stateCode}</span>
+                      <span>You'd title here · {toLaw.flipperRating}</span>
+                      <span>·</span>
+                      <span>Inspection: {toLaw.inspectionCost ? `$${toLaw.inspectionCost}` : "none"}</span>
+                      {toLaw.ageExemptions && <span className="text-green-400 hidden sm:inline">{toLaw.ageExemptions}</span>}
+                      <a href={hasComboPage ? `/tools/title-laws/${fromSlug}-to-${toSlug}` : `/tools/title-laws/${toSlug}`} className="text-[#7dd3fc]/50 hover:text-[#7dd3fc] ml-auto shrink-0">
+                        {hasComboPage ? "Transfer guide →" : "Details →"}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              );
+            } catch {}
+            return null;
+          })()}
 
           {/* Verdict summary — blockquote callout */}
           <div className={`border-l-2 border-${verdictColor === "buy" ? "green" : verdictColor === "pass" ? "red" : "yellow"}-500/40 pl-4 py-1`}>
@@ -896,21 +970,22 @@ export default function AnalysisResults({
                 ) : null}
                 {a.repairEstimate.laborHours > 0 && (
                   <tr className="row-stripe border-b border-[#1a1a1e]">
-                    <td className="py-2 pr-4 text-[#a1a1aa] text-[13px]" colSpan={2}>
-                      <span className="mr-2.5 text-xs text-[#3f3f46]">&#9702;</span>
+                    <td className="py-2 pr-2 sm:pr-4 text-[#a1a1aa] text-[11px] sm:text-[13px]">
+                      <span className="mr-1.5 sm:mr-2.5 text-xs text-[#3f3f46]">&#9702;</span>
                       Labor
-                      <span className="ml-2 text-[#52525b] text-[12px]">(</span>
+                      <span className="ml-1 text-[#52525b] text-[10px] sm:text-[12px]">(</span>
                       <input
                         type="number"
                         defaultValue={a.repairEstimate.laborHours}
                         onChange={(e) => setLaborHoursOverride(e.target.value ? parseFloat(e.target.value) : null)}
-                        className={`w-10 rounded border border-dashed bg-transparent px-1 py-0.5 text-center mono text-[12px] transition-all focus:outline-none ${
+                        className={`w-8 sm:w-10 rounded border border-dashed bg-transparent px-0.5 sm:px-1 py-0.5 text-center mono text-[11px] sm:text-[12px] transition-all focus:outline-none ${
                           laborHoursOverride !== null ? "border-[#7dd3fc]/30 text-[#7dd3fc]" : "border-white/[0.08] text-[#a1a1aa] hover:border-white/[0.15]"
                         }`}
                       />
-                      <span className="text-[#52525b] text-[12px]">h @ ${a.repairEstimate.laborRateHr}/hr)</span>
+                      <span className="text-[#52525b] text-[10px] sm:text-[12px]">h @ ${a.repairEstimate.laborRateHr}/hr)</span>
                     </td>
-                    <td className="py-2 pr-2">
+                    <td className="py-2 hidden sm:table-cell"></td>
+                    <td className="py-2 pr-1 sm:pr-2">
                       <div className={`w-16 sm:w-24 px-1 sm:px-2 py-1 text-right mono text-[12px] sm:text-[14px] ${laborHoursOverride !== null ? "text-[#7dd3fc]" : "text-[#a1a1aa]"}`}>
                         ${fmt(effectiveLaborLow)}
                       </div>
@@ -923,10 +998,11 @@ export default function AnalysisResults({
                   </tr>
                 )}
                 <tr className="row-stripe border-b border-[#1a1a1e]">
-                  <td className="py-2 pr-4 text-[#a1a1aa] text-[13px]" colSpan={2}>
-                    <span className="mr-2.5 text-xs text-[#3f3f46]">&#9702;</span>
+                  <td className="py-2 pr-2 sm:pr-4 text-[#a1a1aa] text-[11px] sm:text-[13px]">
+                    <span className="mr-1.5 sm:mr-2.5 text-xs text-[#3f3f46]">&#9702;</span>
                     Paint
                   </td>
+                  <td className="hidden sm:table-cell"></td>
                   <td className="py-2 pr-2">
                     <input
                       type="number"
@@ -951,13 +1027,14 @@ export default function AnalysisResults({
               </tbody>
               <tfoot>
                 <tr>
-                  <td className="pt-4 pr-4 font-bold text-[#fafafa] text-[15px]" colSpan={2}>
+                  <td className="pt-4 pr-2 sm:pr-4 font-bold text-[#fafafa] text-[13px] sm:text-[15px]">
                     TOTAL
                   </td>
-                  <td className={`mono pt-4 pr-4 text-right font-bold text-[17px] ${hasPartOverrides ? "text-[#7dd3fc]" : "text-[#fafafa]"}`}>
+                  <td className="hidden sm:table-cell"></td>
+                  <td className={`mono pt-4 pr-1 sm:pr-4 text-right font-bold text-[14px] sm:text-[17px] ${hasPartOverrides ? "text-[#7dd3fc]" : "text-[#fafafa]"}`}>
                     ${fmt(effectiveRepairLow)}
                   </td>
-                  <td className={`mono pt-4 text-right font-bold text-[17px]  ${hasPartOverrides ? "text-[#7dd3fc]" : "text-[#fafafa]"}`}>
+                  <td className={`mono pt-4 text-right font-bold text-[14px] sm:text-[17px] ${hasPartOverrides ? "text-[#7dd3fc]" : "text-[#fafafa]"}`}>
                     ${fmt(effectiveRepairHigh)}
                   </td>
                 </tr>

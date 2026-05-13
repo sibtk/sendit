@@ -165,18 +165,18 @@ export default function AnalysisPage() {
 
       {/* Signup CTA for anonymous viewers */}
       {!user && !isOwner && analysis && (
-        <div className="mb-4 rounded-xl border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.03] px-5 py-4 flex items-center justify-between">
-          <p className="text-[13px] text-[#a1a1aa]">Want to analyze your own cars? <span className="text-[#7dd3fc]">Try it free.</span></p>
-          <div className="flex items-center gap-2">
+        <div className="mb-4 rounded-xl border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.03] px-4 py-3 sm:px-5 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-[12px] sm:text-[13px] text-[#a1a1aa]">Want to analyze your own cars? <span className="text-[#7dd3fc]">Try it free.</span></p>
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => router.push("/login")}
-              className="rounded-lg bg-[#7dd3fc] px-4 py-1.5 text-[12px] font-semibold text-[#0a0a0b] hover:bg-[#a5e4ff] transition-all"
+              className="rounded-lg bg-[#7dd3fc] px-3 sm:px-4 py-1.5 text-[11px] sm:text-[12px] font-semibold text-[#0a0a0b] hover:bg-[#a5e4ff] transition-all"
             >
               Sign up free
             </button>
             <button
               onClick={() => router.push("/pricing")}
-              className="rounded-lg border border-white/[0.08] px-4 py-1.5 text-[12px] text-white/40 hover:text-white/60 transition-all"
+              className="rounded-lg border border-white/[0.08] px-3 sm:px-4 py-1.5 text-[11px] sm:text-[12px] text-white/40 hover:text-white/60 transition-all"
             >
               Plans
             </button>
