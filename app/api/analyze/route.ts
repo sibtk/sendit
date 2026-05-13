@@ -368,7 +368,12 @@ export async function POST(request: NextRequest) {
     // Step 9: Server-side sell price calculation
     // Claude consistently undervalues cars. We compute sell price from real data.
     {
-      const titleImpact = analysis.marketValue.titleImpactPct / 100; // e.g. 25 → 0.25
+      // Title impact — cap at reasonable levels, handle non-repairable
+      const titleLowerCheck = (listing.titleStatus || "").toLowerCase() + " " + (listing.titleBrand || "").toLowerCase();
+      const isNonRepairable = titleLowerCheck.includes("non-repairable") || titleLowerCheck.includes("non repairable") || titleLowerCheck.includes("parts only") || titleLowerCheck.includes("certificate of destruction");
+      const rawTitleImpact = analysis.marketValue.titleImpactPct / 100;
+      // Non-repairable: -30% (can export to other states and re-title), never 100%
+      const titleImpact = isNonRepairable ? 0.30 : Math.min(rawTitleImpact, 0.35);
       const vehicleYear = listing.year || 0;
       const vehicleMileage = listing.mileage || 0;
 

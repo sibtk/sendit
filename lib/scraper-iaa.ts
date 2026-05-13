@@ -195,19 +195,45 @@ export async function scrapeIAA(stockNumber: string): Promise<ListingData> {
   const imageKeyMatch = html.match(/(\d{7,9})~SID~B\d{2,4}~/);
   const imageId = imageKeyMatch?.[1] || stockNumber;
 
-  // === Build image URLs with labels using IAA's known pattern ===
+  // === Build image URLs with labels ===
   // Extract image labels from hidden field: "Passenger Front Image,Driver Front photo,..."
   const labelMatch = html.match(/value="(Passenger Front[^"]+)"/);
   const imageLabels = labelMatch ? labelMatch[1].split(",").map(l => l.trim()) : [];
 
+  // Extract actual image indices from HTML — IAA uses non-sequential indices (I5, I6, I8, not I1, I2, I3)
+  const imageIndexRegex = new RegExp(`${imageId}~SID~B${branchNum}~S0~I(\\d+)`, "g");
+  const foundIndices = new Set<number>();
+  let indexMatch;
+  while ((indexMatch = imageIndexRegex.exec(html)) !== null) {
+    foundIndices.add(parseInt(indexMatch[1]));
+  }
+
+  // Sort indices and build URLs
+  const sortedIndices = [...foundIndices].sort((a, b) => a - b);
+
   const imageUrls: string[] = [];
-  const imageLabelMap: Record<string, string> = {}; // url → label
-  for (let i = 1; i <= actualImageCount; i++) {
-    const key = `${imageId}~SID~B${branchNum}~S0~I${i}~RW2576~H1932~TH0`;
-    const url = `https://vis.iaai.com/resizer?imageKeys=${key}&width=845&height=633`;
-    imageUrls.push(url);
-    if (imageLabels[i - 1]) {
-      imageLabelMap[url] = imageLabels[i - 1];
+  const imageLabelMap: Record<string, string> = {};
+
+  if (sortedIndices.length > 0) {
+    // Use actual indices found in HTML
+    for (let idx = 0; idx < sortedIndices.length; idx++) {
+      const i = sortedIndices[idx];
+      const key = `${imageId}~SID~B${branchNum}~S0~I${i}~RW2576~H1932~TH0`;
+      const url = `https://vis.iaai.com/resizer?imageKeys=${key}&width=845&height=633`;
+      imageUrls.push(url);
+      if (imageLabels[idx]) {
+        imageLabelMap[url] = imageLabels[idx];
+      }
+    }
+  } else {
+    // Fallback: sequential indices
+    for (let i = 1; i <= actualImageCount; i++) {
+      const key = `${imageId}~SID~B${branchNum}~S0~I${i}~RW2576~H1932~TH0`;
+      const url = `https://vis.iaai.com/resizer?imageKeys=${key}&width=845&height=633`;
+      imageUrls.push(url);
+      if (imageLabels[i - 1]) {
+        imageLabelMap[url] = imageLabels[i - 1];
+      }
     }
   }
 

@@ -20,7 +20,6 @@ const WANTED_LABELS: { match: string[]; label: string; priority: number }[] = [
   { match: ["driver front", "dsfa"], label: "FRONT-LEFT", priority: 2 },
   { match: ["driver rear", "dsra"], label: "REAR-LEFT", priority: 3 },
   { match: ["passenger rear", "psra"], label: "REAR-RIGHT", priority: 4 },
-  { match: ["damage", "dent"], label: "DAMAGE", priority: 5 },
 ];
 
 // Skip these completely
@@ -46,17 +45,15 @@ function selectAndLabelPhotos(
     if (rawLabel && SKIP_LABELS.some(skip => rawLabel.includes(skip))) continue;
 
     // Try to match a wanted label
-    let matched = false;
     for (const wanted of WANTED_LABELS) {
       if (wanted.match.some(m => rawLabel.includes(m))) {
         selected.push({ url, label: wanted.label, priority: wanted.priority });
-        matched = true;
         break;
       }
     }
 
-    // If no label data at all, include by position (first 5 unlabeled photos)
-    if (!matched && !rawLabel) {
+    // If no label data at all (no imageLabels provided), include by position (first 5)
+    if (!rawLabel && !imageLabels) {
       const DEFAULT_LABELS = ["FRONT-RIGHT", "FRONT-LEFT", "REAR-LEFT", "REAR-RIGHT", "DAMAGE"];
       const idx = selected.length;
       if (idx < DEFAULT_LABELS.length) {

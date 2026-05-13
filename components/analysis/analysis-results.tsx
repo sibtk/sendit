@@ -449,6 +449,44 @@ export default function AnalysisResults({
             )}
           </div>
 
+          {/* Title warning banner */}
+          {(() => {
+            const title = (listing.titleStatus || "").toLowerCase();
+            if (title.includes("non-repairable") || title.includes("non repairable")) {
+              return (
+                <div className="mb-4 rounded-lg border border-orange-500/20 bg-orange-500/[0.04] px-4 py-3">
+                  <div className="text-[12px] font-semibold text-orange-400 mb-1">Non-Repairable Title</div>
+                  <div className="text-[11px] text-orange-400/60 leading-relaxed">Cannot be titled for road use in the issuing state. Can be exported to states like TX, FL, GA, AL that allow re-titling after inspection. Expect -35% to -40% from clean value.</div>
+                </div>
+              );
+            }
+            if (title.includes("certificate of destruction")) {
+              return (
+                <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/[0.04] px-4 py-3">
+                  <div className="text-[12px] font-semibold text-red-400 mb-1">Certificate of Destruction</div>
+                  <div className="text-[11px] text-red-400/60 leading-relaxed">Cannot be registered for road use in most states. Typically parts-only value. Very limited resale options.</div>
+                </div>
+              );
+            }
+            if (title.includes("parts only")) {
+              return (
+                <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/[0.04] px-4 py-3">
+                  <div className="text-[12px] font-semibold text-red-400 mb-1">Parts Only</div>
+                  <div className="text-[11px] text-red-400/60 leading-relaxed">This vehicle is designated for parts/scrap only and cannot be titled for road use.</div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+          {/* Biohazard warning */}
+          {(listing.primaryDamage || "").toLowerCase().includes("biohazard") && (
+            <div className="mb-4 rounded-lg border border-yellow-500/20 bg-yellow-500/[0.04] px-4 py-3">
+              <div className="text-[12px] font-semibold text-yellow-400 mb-1">Biohazard Damage</div>
+              <div className="text-[11px] text-yellow-400/60 leading-relaxed">Typically indicates mold, fluid contamination, or similar interior issues. Actual cause is unknown from listing data alone — always inspect in person before bidding.</div>
+            </div>
+          )}
+
           {/* Verdict summary — blockquote callout */}
           <div className={`border-l-2 border-${verdictColor === "buy" ? "green" : verdictColor === "pass" ? "red" : "yellow"}-500/40 pl-4 py-1`}>
             <p className="text-[14px] leading-relaxed text-[#a1a1aa]">
