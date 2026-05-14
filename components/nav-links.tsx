@@ -4,21 +4,41 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@/lib/auth";
 
-export function NavLinks() {
-  const { user, loading } = useAuth();
-  const [tier, setTier] = useState<string | null>(null);
+const TIER_HINT_KEY = "sendit_tier";
 
-  // Don't render anything until auth resolves — prevents flash
-  if (loading) return null;
+function useCachedTier() {
+  const { user, loading } = useAuth();
+  const [tier, setTier] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(TIER_HINT_KEY);
+  });
 
   useEffect(() => {
-    if (!user) return;
+    // Don't clear cache while auth is still loading — user is null temporarily
+    if (loading) return;
+    if (!user) {
+      setTier(null);
+      localStorage.removeItem(TIER_HINT_KEY);
+      return;
+    }
     const supabase = createBrowserClient();
     supabase.from("user_profiles").select("tier").eq("id", user.id).maybeSingle()
       .then(({ data }) => {
-        if (data?.tier) setTier(data.tier);
+        const t = data?.tier || "free";
+        setTier(t);
+        localStorage.setItem(TIER_HINT_KEY, t);
       });
-  }, [user]);
+  }, [user, loading]);
+
+  return tier;
+}
+
+export function NavLinks() {
+  const { user, loading } = useAuth();
+  const tier = useCachedTier();
+
+  // Don't render anything until auth resolves — prevents flash
+  if (loading) return null;
 
   const isPaid = tier === "pro" || tier === "dealer";
 
@@ -54,20 +74,11 @@ export function NavLinks() {
 
 export function TierBadge() {
   const { user, loading } = useAuth();
-  const [tier, setTier] = useState<string | null>(null);
+  const tier = useCachedTier();
 
   if (loading) return null;
 
-  useEffect(() => {
-    if (!user) { setTier(null); return; }
-    const supabase = createBrowserClient();
-    supabase.from("user_profiles").select("tier").eq("id", user.id).maybeSingle()
-      .then(({ data }) => {
-        if (data?.tier && data.tier !== "free") setTier(data.tier);
-      });
-  }, [user]);
-
-  if (!user || !tier) return null;
+  if (!user || !tier || tier === "free") return null;
 
   return (
     <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${

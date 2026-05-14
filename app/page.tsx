@@ -35,7 +35,10 @@ function HomeContent() {
 
   // Settings loaded from /settings page
   const [settings, setSettings] = useState(loadSettings());
-  const [userTier, setUserTier] = useState<string | null>(null);
+  const [userTier, setUserTier] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("sendit_tier");
+  });
 
   // Check if logged-in user needs onboarding + get tier
   useEffect(() => {
@@ -46,7 +49,10 @@ function HomeContent() {
         if (data && !data.onboarded) {
           router.push("/onboarding");
         }
-        if (data?.tier) setUserTier(data.tier);
+        if (data?.tier) {
+          setUserTier(data.tier);
+          localStorage.setItem("sendit_tier", data.tier);
+        }
       });
   }, [user]);
 

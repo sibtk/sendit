@@ -24,9 +24,15 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+const AUTH_HINT_KEY = "sendit_has_session";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Optimistic: if localStorage hint exists, assume logged in so nav doesn't flash
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return !!localStorage.getItem(AUTH_HINT_KEY);
+  });
   const supabase = createBrowserClient();
 
   useEffect(() => {
@@ -34,12 +40,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
       setLoading(false);
+      // Sync hint
+      if (user) localStorage.setItem(AUTH_HINT_KEY, "1");
+      else localStorage.removeItem(AUTH_HINT_KEY);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
       setLoading(false);
+      if (session?.user) localStorage.setItem(AUTH_HINT_KEY, "1");
+      else localStorage.removeItem(AUTH_HINT_KEY);
     });
 
     return () => subscription.unsubscribe();
@@ -57,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function handleSignOut() {
     setUser(null);
+    localStorage.removeItem(AUTH_HINT_KEY);
     await supabase.auth.signOut({ scope: "local" });
     window.location.href = "/";
   }
