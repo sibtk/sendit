@@ -23,12 +23,15 @@ const MODEL_MAP: Record<string, ModelMapping> = {
   "BMW|M3": { autotempest: "M3", bidfax: "m3" },
   "BMW|M4": { autotempest: "M4", bidfax: "m4" },
   "BMW|M5": { autotempest: "M5", bidfax: "m5" },
+  "BMW|M340": { autotempest: "M340i", bidfax: "m340i" },
+  "BMW|M440": { autotempest: "M440i", bidfax: "m440i" },
+  "BMW|M550": { autotempest: "M550i", bidfax: "m550i" },
+  "BMW|M850": { autotempest: "M8", bidfax: "m850i" },
   "BMW|M6": { autotempest: "M6", bidfax: "m6" },
   "BMW|M8": { autotempest: "M8", bidfax: "m8" },
   "BMW|M235": { autotempest: "M240", bidfax: "m235i" },
   "BMW|M240": { autotempest: "M240", bidfax: "m240i" },
-  "BMW|M550": { autotempest: "M5", bidfax: "m550xi" },
-  "BMW|M760": { autotempest: "M8", bidfax: "m760" },
+  "BMW|M760": { autotempest: "760i", bidfax: "m760" },
   "BMW|128": { autotempest: "128i", bidfax: "128i" },
   "BMW|135": { autotempest: "135i", bidfax: "135" },
   "BMW|228": { autotempest: "M240", bidfax: "228" },
@@ -613,13 +616,17 @@ export function getModelNames(make: string, model: string): { autotempest: strin
   const baseKey = `${makeUp}|${baseModel}`;
   if (MODEL_MAP[baseKey]) return MODEL_MAP[baseKey];
 
-  // Try partial — any map key that this model starts with
+  // Try partial — prefer the longest matching key (so M340 beats M3)
+  let bestMatch: ModelMapping | null = null;
+  let bestLen = 0;
   for (const [key, val] of Object.entries(MODEL_MAP)) {
     const [keyMake, keyModel] = key.split("|");
-    if (keyMake === makeUp && modelUp.startsWith(keyModel)) {
-      return val;
+    if (keyMake === makeUp && modelUp.startsWith(keyModel) && keyModel.length > bestLen) {
+      bestMatch = val;
+      bestLen = keyModel.length;
     }
   }
+  if (bestMatch) return bestMatch;
 
   // Fallback: best guess
   return {

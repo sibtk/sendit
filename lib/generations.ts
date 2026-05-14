@@ -512,6 +512,12 @@ const GENERATIONS: Record<string, Generation[]> = {
     { gen: "F30", years: [2016, 2018] },
     { gen: "G20", years: [2019, 2026] },
   ],
+  "BMW|M340": [
+    { gen: "G20", years: [2020, 2026] },
+  ],
+  "BMW|M440": [
+    { gen: "G22", years: [2021, 2026] },
+  ],
   "BMW|430": [
     { gen: "F32", years: [2014, 2020] },
     { gen: "G22", years: [2021, 2026] },
@@ -1260,13 +1266,14 @@ export function getCompYearRange(make: string, model: string, year: number): [nu
     gens = GENERATIONS[`${makeUp}|${baseModel}`];
   }
 
-  // Try partial match
+  // Try partial match — prefer longest key (so M340 beats M3)
   if (!gens) {
+    let bestLen = 0;
     for (const [key, val] of Object.entries(GENERATIONS)) {
       const [keyMake, keyModel] = key.split("|");
-      if (keyMake === makeUp && modelUp.startsWith(keyModel)) {
+      if (keyMake === makeUp && modelUp.startsWith(keyModel) && keyModel.length > bestLen) {
         gens = val;
-        break;
+        bestLen = keyModel.length;
       }
     }
   }
