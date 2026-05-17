@@ -146,6 +146,346 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // === STREAMING MODE ===
+    if (body.stream) {
+      const stream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          const send = (event: string, data: unknown) => {
+            controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+          };
+
+          try {
+            // Parse URL
+            const parsed = body.url ? parseAuctionUrl(body.url) : null;
+            if (!parsed && !body.pastedText) {
+              send("error", { error: "Could not detect platform from URL. Please use a Copart or IAA listing URL." });
+              controller.close();
+              return;
+            }
+
+            // Scrape listing
+            const t0 = Date.now();
+            let listing;
+            if (parsed) {
+              if (parsed.platform === "copart") {
+                listing = await scrapeCopart(parsed.lotNumber);
+              } else {
+                try {
+                  listing = await scrapeIAA(parsed.lotNumber);
+                } catch (e) {
+                  const isRawNumber = /^\d{7,9}$/.test(body.url?.trim() || "");
+                  if (isRawNumber) {
+                    try { listing = await scrapeCopart(parsed.lotNumber); } catch { throw e; }
+                  } else { throw e; }
+                }
+              }
+            } else {
+              send("error", { error: "Paste mode not yet implemented. Please provide a URL." });
+              controller.close();
+              return;
+            }
+            console.log(`[TIMING] Scrape: ${Date.now() - t0}ms`);
+
+            // Calculate fees + shipping immediately
+            const bidAmount = body.maxBid || body.currentBid || listing.currentBid || listing.buyItNow || 0;
+            const effectiveBid: number | null = bidAmount || null;
+            const streamFees = calculateAuctionFees(listing.platform, bidAmount || 0);
+            let streamShipping: ReturnType<typeof estimateShipping> | null = null;
+            try {
+              streamShipping = estimateShipping(
+                listing.branchCoordinates,
+                listing.sellingBranch || `${listing.branchCity}, ${listing.branchState}`,
+                body.userZip || "77001",
+                body.userLocation || "Houston, TX"
+              );
+            } catch {}
+
+            // SEND: listing data (photos, vehicle info, fees, shipping)
+            send("listing", { listing, fees: streamFees, shipping: streamShipping });
+
+            // Fire comps in background
+            const compsPromise = getAuctionComps(listing.year, listing.make, listing.model)
+              .catch(() => null);
+            const retailPromise = getRetailComps(listing.year, listing.make, listing.model, body.userZip || "77001")
+              .catch(() => null);
+
+            // VIN decode + recalls in parallel
+            const [vinDecodeResult, recallsResult] = await Promise.allSettled([
+              listing.vin && !listing.vinMasked ? decodeVin(listing.vin) : Promise.resolve(null),
+              listing.make && listing.model && listing.year ? getRecalls(listing.make, listing.model, listing.year) : Promise.resolve([]),
+            ]);
+
+            let vinDecode: VinDecode | null = vinDecodeResult.status === "fulfilled" ? vinDecodeResult.value : null;
+            const recalls = recallsResult.status === "fulfilled" ? recallsResult.value : [];
+
+            if (vinDecode) {
+              if (vinDecode.hp && !listing.hp) listing.hp = vinDecode.hp;
+              if (vinDecode.trim && !listing.trim) listing.trim = vinDecode.trim;
+              if (vinDecode.bodyClass && !listing.bodyStyle) listing.bodyStyle = vinDecode.bodyClass;
+            }
+
+            console.log(`[TIMING] VIN decode: ${Date.now() - t0}ms`);
+            // SEND: VIN data
+            send("vin", { vinDecode, listing });
+
+            // Build damage notes (without comps — Claude starts NOW, comps applied server-side later)
+            let damageNotes = body.damageNotes || null;
+            if (!effectiveBid) {
+              damageNotes = (damageNotes || "") + "\n\nNOTE: No bid amount was available from the listing. Estimate a reasonable bid based on the vehicle's condition, market value, and damage level.";
+            }
+            if (!streamShipping) {
+              damageNotes = (damageNotes || "") + "\n\nNOTE: Shipping cost could not be estimated.";
+            }
+
+            // Price DB — quick lookup, include in Claude prompt if available
+            const vehicleMake = vinDecode?.make || listing.make;
+            const vehicleModel = vinDecode?.model || listing.model;
+            const vehicleYear = vinDecode?.year || listing.year;
+            const vehicleTrim = vinDecode?.trim || listing.trim;
+            let priceData = null;
+            try {
+              priceData = await getPriceData(vehicleYear, vehicleMake, vehicleModel, vehicleTrim);
+              if (!priceData && vehicleTrim) priceData = await getPriceData(vehicleYear, vehicleMake, vehicleModel);
+            } catch {}
+            if (!priceData) queueScrape(vehicleYear, vehicleMake, vehicleModel, vehicleTrim).catch(() => {});
+            if (priceData) {
+              damageNotes = (damageNotes || "") + `\n\nMARKET DATA (from ${priceData.sample_count} real listings):\nMedian: $${priceData.median_price.toLocaleString()} | Range: $${priceData.price_low.toLocaleString()}-$${priceData.price_high.toLocaleString()}\nUSE THESE NUMBERS for market value.`;
+            }
+
+            console.log(`[TIMING] Price DB done: ${Date.now() - t0}ms — starting Claude + comps in parallel`);
+            // Start Claude AND comps in PARALLEL — don't wait for comps before calling Claude
+            const claudePromise = analyzeVehicle({
+              listing, vinDecode, recalls, fees: streamFees, shipping: streamShipping,
+              repairProfile: body.repairProfile || "budget_shop",
+              userBid: effectiveBid,
+              userLocation: body.userLocation || "Houston, TX",
+              damageNotes,
+            });
+
+            // Wait for comps in parallel with Claude
+            let auctionComps: any = null;
+            let retailComps: any = null;
+            const compsSettled = Promise.allSettled([compsPromise, retailPromise]).then(([a, r]) => {
+              auctionComps = a.status === "fulfilled" ? a.value : null;
+              retailComps = r.status === "fulfilled" ? r.value : null;
+            }).catch(() => {});
+
+            // Wait for both Claude and comps
+            const [analysis] = await Promise.all([claudePromise, compsSettled]);
+            console.log(`[TIMING] Claude + comps done: ${Date.now() - t0}ms`);
+
+            // SEND: comps data (arrived while Claude was working)
+            send("comps", {
+              auctionComps: auctionComps?.comps.map((c: any) => ({
+                platform: c.platform, year: c.year, price: c.price, priceType: c.priceType,
+                mileage: c.mileage, damage: c.damage, titleStatus: c.titleStatus,
+                location: c.location, seller: c.seller, saleDate: c.saleDate, url: c.url, image: c.image,
+              })) || null,
+              retailComps: retailComps?.comps.slice(0, 15).map((c: any) => ({
+                year: c.year, make: c.make, model: c.model, trim: c.trim,
+                price: c.price, mileage: c.mileage, sellerType: c.sellerType,
+                source: c.source, location: c.location, title: c.title, image: c.image, url: c.url || null,
+              })) || null,
+            });
+
+            // Post-processing (same corrections as non-streaming path)
+            let finalFees = streamFees;
+            if (analysis.financials.purchase > 0 && analysis.financials.purchase !== streamFees.bidAmount) {
+              finalFees = calculateAuctionFees(listing.platform, analysis.financials.purchase);
+              analysis.financials.auctionFees.amount = finalFees.totalFees;
+              analysis.financials.auctionFees.feePct = Math.round((finalFees.totalFees / analysis.financials.purchase) * 100 * 10) / 10;
+            }
+
+            // Math corrections
+            const a = analysis;
+            const partsTotal = a.repairEstimate.parts.reduce((sum: number, p: any) => sum + p.costLow, 0);
+            const partsTotalHigh = a.repairEstimate.parts.reduce((sum: number, p: any) => sum + p.costHigh, 0);
+            const computedRepairLow = partsTotal + (a.repairEstimate.laborTotal?.low || 0) + (a.repairEstimate.paint?.low || 0);
+            const computedRepairHigh = partsTotalHigh + (a.repairEstimate.laborTotal?.high || 0) + (a.repairEstimate.paint?.high || 0);
+            if (Math.abs(computedRepairLow - a.repairEstimate.total.low) > 100) a.repairEstimate.total.low = computedRepairLow;
+            if (Math.abs(computedRepairHigh - a.repairEstimate.total.high) > 100) a.repairEstimate.total.high = computedRepairHigh;
+
+            const purchase = a.financials.purchase;
+            const auctionFeeAmount = finalFees.totalFees;
+            const shipCost = a.financials.shipping?.estimate || 0;
+            const luxuryMakes = ["BMW", "MERCEDES-BENZ", "AUDI", "LEXUS", "PORSCHE", "MASERATI", "JAGUAR", "LAND ROVER", "FERRARI", "LAMBORGHINI", "MCLAREN", "BENTLEY", "ROLLS-ROYCE", "ASTON MARTIN", "LOTUS", "ALFA ROMEO", "RIVIAN", "TESLA"];
+            const midMakes = ["DODGE", "GMC", "JEEP", "RAM", "GENESIS", "ACURA", "INFINITI", "VOLVO", "BUICK", "CHRYSLER", "LINCOLN", "CADILLAC", "MINI"];
+            const makeUp = (listing.make || "").toUpperCase();
+            const detailCost = luxuryMakes.includes(makeUp) ? 400 : midMakes.includes(makeUp) ? 250 : 200;
+            a.financials.detailing = detailCost;
+
+            const titleLower = (listing.titleStatus || "").toLowerCase() + " " + (listing.titleBrand || "").toLowerCase();
+            const needsInspection = titleLower.includes("salvage") || titleLower.includes("rebuilt") || titleLower.includes("rebuildable");
+            const inspectionCost = needsInspection ? 150 : 0;
+            a.financials.rebuiltInspection = inspectionCost;
+            const repLow = a.repairEstimate.total.low;
+            const repHigh = a.repairEstimate.total.high;
+
+            a.financials.auctionFees.amount = auctionFeeAmount;
+            a.financials.auctionFees.feePct = purchase > 0 ? Math.round((auctionFeeAmount / purchase) * 1000) / 10 : 0;
+            a.financials.repairs.low = repLow;
+            a.financials.repairs.high = repHigh;
+            a.financials.allIn.low = purchase + auctionFeeAmount + shipCost + repLow + detailCost + inspectionCost;
+            a.financials.allIn.high = purchase + auctionFeeAmount + shipCost + repHigh + detailCost + inspectionCost;
+            a.financials.profit.low = a.financials.salePrice.low - a.financials.allIn.high;
+            a.financials.profit.high = a.financials.salePrice.high - a.financials.allIn.low;
+            const midAllIn = (a.financials.allIn.low + a.financials.allIn.high) / 2;
+            const midProfit = (a.financials.profit.low + a.financials.profit.high) / 2;
+            a.financials.roiPct = midAllIn > 0 ? Math.round((midProfit / midAllIn) * 1000) / 10 : 0;
+            a.financials.marginPct = a.financials.roiPct;
+
+            if (a.financials.scenarios) {
+              const bestAllIn = purchase + auctionFeeAmount + shipCost + repLow + detailCost + inspectionCost;
+              const worstAllIn = purchase + auctionFeeAmount + shipCost + Math.round(repHigh * 1.3) + detailCost + inspectionCost;
+              a.financials.scenarios.bestCase.allIn = bestAllIn;
+              a.financials.scenarios.bestCase.profit = a.financials.salePrice.high - bestAllIn;
+              a.financials.scenarios.bestCase.roi = bestAllIn > 0 ? Math.round((a.financials.scenarios.bestCase.profit / bestAllIn) * 1000) / 10 : 0;
+              a.financials.scenarios.expected.allIn = Math.round(midAllIn);
+              a.financials.scenarios.expected.profit = Math.round(midProfit);
+              a.financials.scenarios.expected.roi = a.financials.roiPct;
+              a.financials.scenarios.worstCase.allIn = worstAllIn;
+              a.financials.scenarios.worstCase.profit = a.financials.salePrice.low - worstAllIn;
+              a.financials.scenarios.worstCase.roi = worstAllIn > 0 ? Math.round((a.financials.scenarios.worstCase.profit / worstAllIn) * 1000) / 10 : 0;
+            }
+
+            if (a.bidCeilings) {
+              const fixedPerCar = auctionFeeAmount + shipCost + detailCost + inspectionCost;
+              const midRepair = (repLow + repHigh) / 2;
+              const midSell = (a.financials.salePrice.low + a.financials.salePrice.high) / 2;
+              const effFeeRate = purchase > 0 ? auctionFeeAmount / purchase : 0.08;
+              a.bidCeilings.steal = Math.max(0, Math.round((midSell / 1.3 - fixedPerCar - midRepair) / (1 + effFeeRate)));
+              a.bidCeilings.good = Math.max(a.bidCeilings.steal, Math.round((midSell / 1.2 - fixedPerCar - midRepair) / (1 + effFeeRate)));
+              a.bidCeilings.fair = Math.max(a.bidCeilings.good, Math.round((midSell / 1.1 - fixedPerCar - midRepair) / (1 + effFeeRate)));
+              a.bidCeilings.walk = Math.max(a.bidCeilings.fair, Math.round((midSell / 1.05 - fixedPerCar - midRepair) / (1 + effFeeRate)));
+            }
+
+            const targetProfit = Math.max(2000, midAllIn * 0.15);
+            const effFeeRate2 = purchase > 0 ? auctionFeeAmount / purchase : 0.08;
+            const midSell2 = (a.financials.salePrice.low + a.financials.salePrice.high) / 2;
+            const midRepair2 = (repLow + repHigh) / 2;
+            a.maxBidRecommendation = Math.max(0, Math.round((midSell2 - targetProfit - shipCost - detailCost - midRepair2) / (1 + effFeeRate2)));
+
+            if (a.financials.scenarios) {
+              const expProfit = a.financials.scenarios.expected.profit;
+              const worstProfit = a.financials.scenarios.worstCase.profit;
+              if (expProfit < 0 && a.verdict === "BUY") a.verdict = "PASS";
+              else if (expProfit > 0 && worstProfit > 0 && a.verdict === "PASS") a.verdict = "BUY";
+              else if (expProfit > 0 && worstProfit < -2000 && a.verdict === "BUY") a.verdict = "RISKY";
+            }
+
+            // Sell price override (same as non-streaming)
+            let sellPriceOverridden = false;
+            const titleLowerCheck = (listing.titleStatus || "").toLowerCase() + " " + (listing.titleBrand || "").toLowerCase();
+            const isNonRepairable = titleLowerCheck.includes("non-repairable") || titleLowerCheck.includes("non repairable") || titleLowerCheck.includes("parts only") || titleLowerCheck.includes("certificate of destruction");
+            const rawTitleImpact = analysis.marketValue.titleImpactPct / 100;
+            const titleImpact = isNonRepairable ? 0.30 : Math.min(rawTitleImpact, 0.35);
+            const acv = listing.acv || 0;
+            let adjustedCompMedian: number | null = null;
+            if (retailComps && retailComps.count >= 3) {
+              const compAvgYear = retailComps.comps.reduce((s: number, c: any) => s + c.year, 0) / retailComps.count;
+              const compsWithMiles = retailComps.comps.filter((c: any) => c.mileage && c.mileage > 0);
+              const compAvgMiles = compsWithMiles.length > 0 ? compsWithMiles.reduce((s: number, c: any) => s + c.mileage, 0) / compsWithMiles.length : 0;
+              let adjustment = 0;
+              const yearDiff = (listing.year || 0) - compAvgYear;
+              if (yearDiff !== 0) adjustment += yearDiff * (retailComps.median > 30000 ? 2500 : retailComps.median > 15000 ? 2000 : 1500);
+              if (compAvgMiles > 0 && (listing.mileage || 0) > 0) adjustment += (compAvgMiles - (listing.mileage || 0)) * (retailComps.median > 30000 ? 0.10 : 0.07);
+              adjustedCompMedian = retailComps.median + adjustment;
+            }
+            let cleanValue: number | null = null;
+            if (acv > 0 && adjustedCompMedian) cleanValue = Math.round(acv * 0.4 + adjustedCompMedian * 0.6);
+            else if (acv > 0) cleanValue = acv;
+            else if (adjustedCompMedian) cleanValue = Math.round(adjustedCompMedian);
+
+            if (cleanValue && cleanValue > 0) {
+              const rebuilt = Math.round(cleanValue * (1 - titleImpact));
+              const saleLow = Math.round(rebuilt * 0.9);
+              const saleHigh = Math.round(rebuilt * 1.1);
+              const claudeMid = (a.financials.salePrice.low + a.financials.salePrice.high) / 2;
+              const ourMid = (saleLow + saleHigh) / 2;
+              if (Math.abs(ourMid - claudeMid) > claudeMid * 0.15) {
+                sellPriceOverridden = true;
+                a.financials.salePrice.low = saleLow;
+                a.financials.salePrice.high = saleHigh;
+                a.marketValue.cleanRetail = { low: Math.round(cleanValue * 0.9), high: Math.round(cleanValue * 1.1) };
+                a.marketValue.adjustedValue = { low: saleLow, high: saleHigh };
+                // Recalculate profit with new sell price
+                a.financials.profit.low = saleLow - a.financials.allIn.high;
+                a.financials.profit.high = saleHigh - a.financials.allIn.low;
+                const newMidProfit = (a.financials.profit.low + a.financials.profit.high) / 2;
+                a.financials.roiPct = midAllIn > 0 ? Math.round((newMidProfit / midAllIn) * 1000) / 10 : 0;
+                a.financials.marginPct = a.financials.roiPct;
+              }
+            }
+
+            // Build full analysis
+            const fullAnalysis: FullAnalysis = {
+              id: randomUUID(),
+              listing, vinDecode, fees: finalFees, shipping: streamShipping, analysis,
+              auctionComps: auctionComps?.comps.map((c: any) => ({
+                platform: c.platform, year: c.year, price: c.price, priceType: c.priceType,
+                mileage: c.mileage, damage: c.damage, titleStatus: c.titleStatus,
+                location: c.location, seller: c.seller, saleDate: c.saleDate, url: c.url, image: c.image,
+              })) || null,
+              retailComps: retailComps?.comps.slice(0, 15).map((c: any) => ({
+                year: c.year, make: c.make, model: c.model, trim: c.trim,
+                price: c.price, mileage: c.mileage, sellerType: c.sellerType,
+                source: c.source, location: c.location, title: c.title, image: c.image, url: c.url || null,
+              })) || null,
+              repairProfile: body.repairProfile || "budget_shop",
+              userLocation: body.userLocation || "Houston, TX",
+              createdAt: new Date().toISOString(),
+            };
+
+            // Save + log — fire and forget, don't await
+            logUsage(userId, fingerprint, body.url || "").catch(() => {});
+            const serviceClient = createClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+              process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+            );
+            serviceClient.from("saved_analyses").insert({
+              id: fullAnalysis.id, user_id: userId || null,
+              platform: listing.platform, lot_number: listing.lotNumber, url: listing.url,
+              listing_data: fullAnalysis, analysis_result: analysis,
+              repair_profile: body.repairProfile || "budget_shop",
+              user_location: body.userLocation || "Houston, TX",
+            }).then(({ error }) => { if (error) console.error("Failed to save analysis:", error); });
+
+            trackAnalysis({
+              userId, fingerprint, platform: listing.platform,
+              vehicleYear: listing.year || 0, vehicleMake: listing.make || "", vehicleModel: listing.model || "",
+              verdict: a.verdict, damageSeverity: a.damageAssessment?.severity || "unknown",
+              repairEstimateLow: a.repairEstimate.total.low, repairEstimateHigh: a.repairEstimate.total.high,
+              sellPriceLow: a.financials.salePrice.low, sellPriceHigh: a.financials.salePrice.high,
+              profitLow: a.financials.profit.low, profitHigh: a.financials.profit.high,
+              roiPct: a.financials.roiPct, photoCount: listing.imageUrls?.length || 0,
+              compCountAuction: fullAnalysis.auctionComps?.length || 0, compCountRetail: fullAnalysis.retailComps?.length || 0,
+              hasAcv: !!(listing.acv && listing.acv > 0), sellPriceOverridden,
+              partsCount: a.repairEstimate.parts.length, laborHours: a.repairEstimate.laborHours || 0,
+              analysisTimeMs: Date.now() - analysisStart, cached: false,
+            });
+
+            // SEND: complete analysis
+            send("complete", fullAnalysis);
+            controller.close();
+          } catch (error) {
+            send("error", { error: error instanceof Error ? error.message : "Analysis failed" });
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
+
+    // === NON-STREAMING MODE (existing behavior, unchanged) ===
+
     // Step 1: Parse URL and detect platform
     let parsed = body.url ? parseAuctionUrl(body.url) : null;
 
@@ -275,50 +615,6 @@ export async function POST(request: NextRequest) {
       queueScrape(vehicleYear, vehicleMake, vehicleModel, vehicleTrim).catch(() => {});
     }
 
-    // Step 7b: Wait for ALL comps — Claude needs both for accurate analysis
-    // BidFax + AutoTempest were fired in parallel with VIN decode (step 3)
-    // If BidFax is cached in DB, this is instant. If fresh scrape, up to 20s.
-    let auctionComps = null;
-    let retailComps = null;
-    try {
-      const [auctionResult, retailResult] = await Promise.allSettled([
-        compsPromise,
-        retailPromise,
-      ]);
-      auctionComps = auctionResult.status === "fulfilled" ? auctionResult.value : null;
-      retailComps = retailResult.status === "fulfilled" ? retailResult.value : null;
-    } catch (e) {
-      console.error("Comps failed:", e);
-    }
-
-    // Add auction comp data to prompt
-    if (auctionComps && auctionComps.count > 0) {
-      const compLines = auctionComps.comps.slice(0, 6).map(c =>
-        `${c.platform.toUpperCase()} | $${c.price.toLocaleString()} (${c.priceType}) | ${c.mileage ? c.mileage.toLocaleString() + " mi" : "N/A mi"} | ${c.damage || "N/A"} | ${c.location || "N/A"}`
-      ).join("\n");
-
-      const compContext = `\nAUCTION COMPS (real ${auctionComps.count} similar listings from IAA/Copart):\n` +
-        `Range: $${auctionComps.priceRange.low.toLocaleString()} - $${auctionComps.priceRange.high.toLocaleString()} | ` +
-        `Median: $${auctionComps.median.toLocaleString()} | Avg: $${auctionComps.avg.toLocaleString()}\n` +
-        compLines + "\n" +
-        `NOTE: Price differences between comps are due to damage severity, title status, mileage, and location. Use these to estimate a realistic auction purchase price.`;
-      damageNotes = damageNotes ? `${damageNotes}\n\n${compContext}` : compContext;
-    }
-
-    // Add retail comps to prompt
-    if (retailComps && retailComps.count > 0) {
-      const retailLines = retailComps.comps.slice(0, 6).map(c =>
-        `$${c.price.toLocaleString()} | ${c.year} ${c.trim || ""} | ${c.mileage ? c.mileage.toLocaleString() + " mi" : "N/A"} | ${c.sellerType || "?"} | ${c.title || "?"} title | ${c.source || ""}`
-      ).join("\n");
-
-      const retailContext = `\nRETAIL MARKET COMPS (${retailComps.count} active listings from Cars.com, CarGurus, Craigslist):\n` +
-        `Range: $${retailComps.priceRange.low.toLocaleString()} - $${retailComps.priceRange.high.toLocaleString()} | ` +
-        `Median: $${retailComps.median.toLocaleString()} | Avg: $${retailComps.avg.toLocaleString()}\n` +
-        retailLines + "\n" +
-        `USE THESE for market value estimates. These are REAL asking prices from the retail market right now.`;
-      damageNotes = damageNotes ? `${damageNotes}\n\n${retailContext}` : retailContext;
-    }
-
     // Add price data to damage notes so Claude sees it
     if (priceData) {
       const priceContext = `\nMARKET DATA (from ${priceData.sample_count} real listings, updated ${new Date(priceData.last_updated).toLocaleDateString()}):\n` +
@@ -328,8 +624,9 @@ export async function POST(request: NextRequest) {
       damageNotes = damageNotes ? `${damageNotes}\n\n${priceContext}` : priceContext;
     }
 
-    // Step 8: Analyze with Claude (the AI part)
-    const analysis = await analyzeVehicle({
+    // Step 8: Start Claude AND wait for comps IN PARALLEL
+    // Claude doesn't need comps — server-side corrections handle sell price using comps + ACV
+    const claudePromise = analyzeVehicle({
       listing,
       vinDecode,
       recalls,
@@ -340,6 +637,16 @@ export async function POST(request: NextRequest) {
       userLocation: body.userLocation || "Houston, TX",
       damageNotes,
     });
+
+    let auctionComps: any = null;
+    let retailComps: any = null;
+    const compsSettled = Promise.allSettled([compsPromise, retailPromise]).then(([auctionResult, retailResult]) => {
+      auctionComps = auctionResult.status === "fulfilled" ? auctionResult.value : null;
+      retailComps = retailResult.status === "fulfilled" ? retailResult.value : null;
+    }).catch((e) => console.error("Comps failed:", e));
+
+    // Both run concurrently — Claude + comps finish around the same time
+    const [analysis] = await Promise.all([claudePromise, compsSettled]);
 
     // Step 8: Recalculate fees if Claude estimated a purchase price different from our initial bid
     // This fixes the disconnect where fees are calc'd at $0 but Claude estimates $15K
@@ -386,10 +693,10 @@ export async function POST(request: NextRequest) {
       let adjustedCompMedian: number | null = null;
       if (retailComps && retailComps.count >= 3) {
         // Calculate average year and mileage of comps
-        const compAvgYear = retailComps.comps.reduce((s, c) => s + c.year, 0) / retailComps.count;
-        const compsWithMiles = retailComps.comps.filter(c => c.mileage && c.mileage > 0);
+        const compAvgYear = retailComps.comps.reduce((s: number, c: any) => s + c.year, 0) / retailComps.count;
+        const compsWithMiles = retailComps.comps.filter((c: any) => c.mileage && c.mileage > 0);
         const compAvgMiles = compsWithMiles.length > 0
-          ? compsWithMiles.reduce((s, c) => s + (c.mileage || 0), 0) / compsWithMiles.length
+          ? compsWithMiles.reduce((s: number, c: any) => s + (c.mileage || 0), 0) / compsWithMiles.length
           : 0;
 
         let adjustment = 0;
@@ -574,7 +881,7 @@ export async function POST(request: NextRequest) {
       fees: finalFees,
       shipping,
       analysis,
-      auctionComps: auctionComps?.comps.map(c => ({
+      auctionComps: auctionComps?.comps.map((c: any) => ({
         platform: c.platform,
         year: c.year,
         price: c.price,
@@ -588,7 +895,7 @@ export async function POST(request: NextRequest) {
         url: c.url,
         image: c.image,
       })) || null,
-      retailComps: retailComps?.comps.slice(0, 15).map(c => ({
+      retailComps: retailComps?.comps.slice(0, 15).map((c: any) => ({
         year: c.year,
         make: c.make,
         model: c.model,
@@ -607,33 +914,24 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
-    // Log usage for rate limiting
-    try {
-      await logUsage(userId, fingerprint, body.url || "");
-    } catch (e) {
-      console.error("Usage logging failed:", e);
-    }
+    // Log usage + save to DB — fire and forget, don't block response
+    logUsage(userId, fingerprint, body.url || "").catch((e) => console.error("Usage logging failed:", e));
 
-    // Save to DB (for caching + signed-in user history) — use service client to bypass RLS
     const serviceClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || "",
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
     );
-    try {
-      await serviceClient.from("saved_analyses").insert({
-        id: fullAnalysis.id,
-        user_id: userId || null,
-        platform: listing.platform,
-        lot_number: listing.lotNumber,
-        url: listing.url,
-        listing_data: fullAnalysis, // store entire result so shared links have everything
-        analysis_result: analysis,
-        repair_profile: body.repairProfile || "budget_shop",
-        user_location: body.userLocation || "Houston, TX",
-      });
-    } catch (e) {
-      console.error("Failed to save analysis:", e);
-    }
+    serviceClient.from("saved_analyses").insert({
+      id: fullAnalysis.id,
+      user_id: userId || null,
+      platform: listing.platform,
+      lot_number: listing.lotNumber,
+      url: listing.url,
+      listing_data: fullAnalysis,
+      analysis_result: analysis,
+      repair_profile: body.repairProfile || "budget_shop",
+      user_location: body.userLocation || "Houston, TX",
+    }).then(({ error }) => { if (error) console.error("Failed to save analysis:", error); });
 
     // Track analytics
     trackAnalysis({

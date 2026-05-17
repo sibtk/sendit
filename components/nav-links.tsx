@@ -1,41 +1,9 @@
 "use client";
 
 import { useAuth } from "@/components/auth/auth-provider";
-import { useEffect, useState } from "react";
-import { createBrowserClient } from "@/lib/auth";
-
-const TIER_HINT_KEY = "sendit_tier";
-
-function useCachedTier() {
-  const { user, loading } = useAuth();
-  const [tier, setTier] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(TIER_HINT_KEY);
-  });
-
-  useEffect(() => {
-    // Don't clear cache while auth is still loading — user is null temporarily
-    if (loading) return;
-    if (!user) {
-      setTier(null);
-      localStorage.removeItem(TIER_HINT_KEY);
-      return;
-    }
-    const supabase = createBrowserClient();
-    supabase.from("user_profiles").select("tier").eq("id", user.id).maybeSingle()
-      .then(({ data }) => {
-        const t = data?.tier || "free";
-        setTier(t);
-        localStorage.setItem(TIER_HINT_KEY, t);
-      });
-  }, [user, loading]);
-
-  return tier;
-}
 
 export function NavLinks() {
-  const { user, loading } = useAuth();
-  const tier = useCachedTier();
+  const { user, loading, tier } = useAuth();
 
   // Don't render anything until auth resolves — prevents flash
   if (loading) return null;
@@ -45,17 +13,17 @@ export function NavLinks() {
   if (user) {
     return (
       <>
-        <a href="/" className="hover:text-[#7dd3fc] transition-colors">
+        <a href="/" className="hidden sm:inline hover:text-[#7dd3fc] transition-colors">
           New Scan
         </a>
-        <a href="/flips" className="hover:text-[#a1a1aa] transition-colors">
+        <a href="/flips" className="hidden sm:inline hover:text-[#a1a1aa] transition-colors">
           My Cars
         </a>
-        <a href="/analyses" className="hover:text-[#a1a1aa] transition-colors">
+        <a href="/analyses" className="hidden sm:inline hover:text-[#a1a1aa] transition-colors">
           History
         </a>
         {!isPaid && (
-          <a href="/pricing" className="text-[#7dd3fc]/60 hover:text-[#7dd3fc] transition-colors">
+          <a href="/pricing" className="hidden sm:inline text-[#7dd3fc]/60 hover:text-[#7dd3fc] transition-colors">
             Upgrade
           </a>
         )}
@@ -73,8 +41,7 @@ export function NavLinks() {
 }
 
 export function TierBadge() {
-  const { user, loading } = useAuth();
-  const tier = useCachedTier();
+  const { user, loading, tier } = useAuth();
 
   if (loading) return null;
 

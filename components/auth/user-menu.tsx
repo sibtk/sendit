@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function UserMenu() {
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  if (loading) return null;
 
   if (!user) {
     return (
@@ -39,6 +41,24 @@ export function UserMenu() {
               {user.email}
             </div>
             <button
+              onClick={() => { router.push("/"); setOpen(false); }}
+              className="w-full rounded-lg px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/[0.04] hover:text-white/80 transition-all sm:hidden"
+            >
+              New Scan
+            </button>
+            <button
+              onClick={() => { router.push("/flips"); setOpen(false); }}
+              className="w-full rounded-lg px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/[0.04] hover:text-white/80 transition-all sm:hidden"
+            >
+              My Cars
+            </button>
+            <button
+              onClick={() => { router.push("/analyses"); setOpen(false); }}
+              className="w-full rounded-lg px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/[0.04] hover:text-white/80 transition-all sm:hidden"
+            >
+              History
+            </button>
+            <button
               onClick={() => { router.push("/settings"); setOpen(false); }}
               className="w-full rounded-lg px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/[0.04] hover:text-white/80 transition-all"
             >
@@ -46,7 +66,7 @@ export function UserMenu() {
             </button>
             <button
               onClick={() => { router.push("/analyses"); setOpen(false); }}
-              className="w-full rounded-lg px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/[0.04] hover:text-white/80 transition-all"
+              className="w-full rounded-lg px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/[0.04] hover:text-white/80 transition-all hidden sm:block"
             >
               History
             </button>

@@ -201,24 +201,39 @@ export async function scrapeIAA(stockNumber: string): Promise<ListingData> {
   const imageLabels = labelMatch ? labelMatch[1].split(",").map(l => l.trim()) : [];
 
   // Extract actual image indices from HTML — IAA uses non-sequential indices (I5, I6, I8, not I1, I2, I3)
-  const imageIndexRegex = new RegExp(`${imageId}~SID~B${branchNum}~S0~I(\\d+)`, "g");
-  const foundIndices = new Set<number>();
+  // The S value (S0, S1, etc.) varies per listing — detect it from the HTML
+  const imageIndexRegex = new RegExp(`${imageId}~SID~B${branchNum}~S(\\d)~I(\\d+)`, "g");
+  const foundImages: { s: string; i: number }[] = [];
+  const seenIndices = new Set<number>();
   let indexMatch;
   while ((indexMatch = imageIndexRegex.exec(html)) !== null) {
-    foundIndices.add(parseInt(indexMatch[1]));
+    const idx = parseInt(indexMatch[2]);
+    if (!seenIndices.has(idx)) {
+      seenIndices.add(idx);
+      foundImages.push({ s: indexMatch[1], i: idx });
+    }
   }
 
-  // Sort indices and build URLs
-  const sortedIndices = [...foundIndices].sort((a, b) => a - b);
+  // Determine the most common S value (S1 = active on most listings)
+  const sCounts: Record<string, number> = {};
+  for (const img of foundImages) {
+    sCounts[img.s] = (sCounts[img.s] || 0) + 1;
+  }
+  const primaryS = Object.entries(sCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "0";
+
+  // Filter to only the primary S value (active images), sort by index
+  const activeIndices = foundImages
+    .filter(img => img.s === primaryS)
+    .map(img => img.i)
+    .sort((a, b) => a - b);
 
   const imageUrls: string[] = [];
   const imageLabelMap: Record<string, string> = {};
 
-  if (sortedIndices.length > 0) {
-    // Use actual indices found in HTML
-    for (let idx = 0; idx < sortedIndices.length; idx++) {
-      const i = sortedIndices[idx];
-      const key = `${imageId}~SID~B${branchNum}~S0~I${i}~RW2576~H1932~TH0`;
+  if (activeIndices.length > 0) {
+    for (let idx = 0; idx < activeIndices.length; idx++) {
+      const i = activeIndices[idx];
+      const key = `${imageId}~SID~B${branchNum}~S${primaryS}~I${i}~RW2576~H1932~TH0`;
       const url = `https://vis.iaai.com/resizer?imageKeys=${key}&width=845&height=633`;
       imageUrls.push(url);
       if (imageLabels[idx]) {
@@ -226,7 +241,7 @@ export async function scrapeIAA(stockNumber: string): Promise<ListingData> {
       }
     }
   } else {
-    // Fallback: sequential indices
+    // Fallback: sequential indices with S0
     for (let i = 1; i <= actualImageCount; i++) {
       const key = `${imageId}~SID~B${branchNum}~S0~I${i}~RW2576~H1932~TH0`;
       const url = `https://vis.iaai.com/resizer?imageKeys=${key}&width=845&height=633`;

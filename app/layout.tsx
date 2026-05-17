@@ -56,6 +56,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${grotesk.variable} ${jetbrains.variable}`}>
+      <head>
+        <link rel="preload" href="/bg.jpg" as="image" type="image/jpeg" />
+      </head>
       <body className="min-h-screen relative flex flex-col" style={{ fontFamily: "var(--font-inter)" }}>
         <AuthProvider>
           {/* Global background texture */}

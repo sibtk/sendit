@@ -6,6 +6,7 @@ import { createBrowserClient } from "@/lib/auth";
 
 interface AuthContextType {
   user: User | null;
+  tier: string | null;
   loading: boolean;
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -14,6 +15,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  tier: null,
   loading: true,
   signUp: async () => {},
   signIn: async () => {},
@@ -25,36 +27,59 @@ export function useAuth() {
 }
 
 const AUTH_HINT_KEY = "sendit_has_session";
+const TIER_HINT_KEY = "sendit_tier";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Optimistic: if localStorage hint exists, assume logged in so nav doesn't flash
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return !!localStorage.getItem(AUTH_HINT_KEY);
-  });
+  // Always start true — matches server SSR, no hydration mismatch
+  const [loading, setLoading] = useState(true);
+  const [tier, setTier] = useState<string | null>(null);
   const supabase = createBrowserClient();
 
+  // Auth resolution: getSession (instant, reads local JWT) + onAuthStateChange (subsequent events)
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setLoading(false);
-      // Sync hint
-      if (user) localStorage.setItem(AUTH_HINT_KEY, "1");
-      else localStorage.removeItem(AUTH_HINT_KEY);
-    });
+    let mounted = true;
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
+    // 1. Fast initial resolve — no network request
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      setUser(session?.user ?? null);
       setLoading(false);
       if (session?.user) localStorage.setItem(AUTH_HINT_KEY, "1");
       else localStorage.removeItem(AUTH_HINT_KEY);
     });
 
-    return () => subscription.unsubscribe();
+    // 2. Listen for subsequent auth changes (token refresh, sign-out from other tab)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setUser(session?.user ?? null);
+      setLoading(false);
+      if (session?.user) localStorage.setItem(AUTH_HINT_KEY, "1");
+      else localStorage.removeItem(AUTH_HINT_KEY);
+    });
+
+    return () => { mounted = false; subscription.unsubscribe(); };
   }, []);
+
+  // Tier fetch: runs once after auth resolves, shared via context
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      setTier(null);
+      localStorage.removeItem(TIER_HINT_KEY);
+      return;
+    }
+    // Use cached tier immediately while fresh query loads
+    const cached = localStorage.getItem(TIER_HINT_KEY);
+    if (cached) setTier(cached);
+
+    supabase.from("user_profiles").select("tier").eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        const t = data?.tier || "free";
+        setTier(t);
+        localStorage.setItem(TIER_HINT_KEY, t);
+      });
+  }, [user, loading]);
 
   async function handleSignUp(email: string, password: string) {
     const { error } = await supabase.auth.signUp({ email, password });
@@ -68,7 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function handleSignOut() {
     setUser(null);
+    setTier(null);
     localStorage.removeItem(AUTH_HINT_KEY);
+    localStorage.removeItem(TIER_HINT_KEY);
     await supabase.auth.signOut({ scope: "local" });
     window.location.href = "/";
   }
@@ -76,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user,
+      tier,
       loading,
       signUp: handleSignUp,
       signIn: handleSignIn,

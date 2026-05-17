@@ -302,6 +302,7 @@ export interface AnalyzeRequest {
   damageNotes?: string;
   additionalPhotoUrls?: string[];
   fresh?: boolean;
+  stream?: boolean;
 }
 
 // ============================================
