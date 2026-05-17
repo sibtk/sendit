@@ -123,7 +123,9 @@ const MODEL_MAP: Record<string, ModelMapping> = {
   "HONDA|PROLOGUE": { autotempest: "Prologue", bidfax: "prologue" },
 
   // ── Dodge ────────────────────────────────────────────────────
+  "DODGE|CHARGER SRT": { autotempest: "Charger", bidfax: "charger" },
   "DODGE|CHARGER": { autotempest: "Charger", bidfax: "charger" },
+  "DODGE|CHALLENGER SRT": { autotempest: "Challenger", bidfax: "challenger" },
   "DODGE|CHALLENGER": { autotempest: "Challenger", bidfax: "challenger" },
   "DODGE|DURANGO": { autotempest: "Durango", bidfax: "durango" },
   "DODGE|VIPER": { autotempest: "Viper", bidfax: "viper" },

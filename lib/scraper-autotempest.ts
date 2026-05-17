@@ -32,11 +32,42 @@ export interface RetailCompSummary {
 const retailCache: Record<string, { comps: RetailComp[]; timestamp: number }> = {};
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
 
+// Performance trims where comps MUST match — same list as auction comps
+const TRIM_FILTER_RULES: Record<string, { match: string[]; exclude?: string[]; minPrice?: number }> = {
+  "HELLCAT": { match: ["hellcat", "srt hellcat"], minPrice: 30000 },
+  "HELLCAT RWD": { match: ["hellcat", "srt hellcat"], minPrice: 30000 },
+  "HELLCAT WIDEBODY": { match: ["hellcat", "srt hellcat"], minPrice: 30000 },
+  "HELLCAT REDEYE": { match: ["hellcat", "srt hellcat"], minPrice: 30000 },
+  "SRT HELLCAT": { match: ["hellcat", "srt hellcat"], minPrice: 30000 },
+  "SRT HELLCAT RWD": { match: ["hellcat", "srt hellcat"], minPrice: 30000 },
+  "SRT HELLCAT WIDEBODY": { match: ["hellcat", "srt hellcat"], minPrice: 30000 },
+  "SRT HELLCAT REDEYE": { match: ["hellcat", "srt hellcat"], minPrice: 30000 },
+  "SCAT PACK": { match: ["scat pack", "scat"] },
+  "SCAT PACK WIDEBODY": { match: ["scat pack", "scat"] },
+  "SRT 392": { match: ["srt 392", "392"] },
+  "SRT8": { match: ["srt8", "srt 8"] },
+  "GT": { match: ["gt"], exclude: ["gte", "gti", "gt-line", "gt line"] },
+  "SHELBY GT500": { match: ["shelby", "gt500"] },
+  "SHELBY GT350": { match: ["shelby", "gt350"] },
+  "GT500": { match: ["gt500", "shelby"] },
+  "GT350": { match: ["gt350", "shelby"] },
+  "TYPE R": { match: ["type r", "type-r"] },
+  "NISMO": { match: ["nismo"] },
+  "TRD PRO": { match: ["trd pro", "trd"] },
+  "RAPTOR": { match: ["raptor"] },
+  "ZL1": { match: ["zl1"] },
+  "SS": { match: ["ss"], exclude: ["base"] },
+  "Z06": { match: ["z06"] },
+  "ZR1": { match: ["zr1"] },
+  "TRACK PACK": { match: ["track pack"] },
+};
+
 export async function getRetailComps(
   year: number,
   make: string,
   model: string,
-  zip: string = "77001"
+  zip: string = "77001",
+  trim?: string | null
 ): Promise<RetailCompSummary | null> {
   const { getModelNames } = await import("./model-mapping");
   const names = getModelNames(make, model);
@@ -59,6 +90,10 @@ export async function getRetailComps(
     // AutoTempest rejects hyphens in model names — strip them
     const cleanModel = searchModel.replace(/-/g, "");
 
+    // Check if this is a performance trim that needs price filtering
+    const trimUp = (trim || "").toUpperCase();
+    const trimRule = TRIM_FILTER_RULES[trimUp];
+
     const params = new URLSearchParams({
       make: make,
       model: cleanModel,
@@ -67,10 +102,13 @@ export async function getRetailComps(
       minyear: String(minYear),
       maxyear: String(maxYear),
       rpp: "20",
-      sort: "price_asc",
+      sort: trimRule?.minPrice ? "price_desc" : "price_asc",
       sites: "cg|st|cs|cm|at|eb|ct",
       deduplicationSites: "cg|st|cs|cm|at|eb|ct",
     });
+    if (trimRule?.minPrice) {
+      params.set("minprice", String(trimRule.minPrice));
+    }
 
     const url = `https://www.autotempest.com/api/search?${params}`;
     console.log(`AutoTempest: fetching ${make} ${searchModel} ${minYear}-${maxYear}`);
@@ -122,7 +160,29 @@ export async function getRetailComps(
 
     retailCache[cacheKey] = { comps, timestamp: Date.now() };
 
-    return summarize(comps);
+    // Filter by performance trim if applicable
+    let finalComps = comps;
+    if (trim) {
+      const trimUp = trim.toUpperCase();
+      const rule = TRIM_FILTER_RULES[trimUp];
+      if (rule) {
+        const trimFiltered = comps.filter((c) => {
+          const compTrim = ((c.trim || "") + " " + (c.model || "")).toLowerCase();
+          const hasMatch = rule.match.some(m => compTrim.includes(m));
+          const hasExclude = rule.exclude?.some(e => compTrim.includes(e));
+          return hasMatch && !hasExclude;
+        });
+        console.log(`AutoTempest: comp trims: ${comps.map(c => `"${c.trim || ""} | ${c.model || ""}"`).join(", ")}`);
+        if (trimFiltered.length >= 2) {
+          console.log(`AutoTempest: trim filter "${trim}" kept ${trimFiltered.length}/${comps.length} comps`);
+          finalComps = trimFiltered;
+        } else {
+          console.log(`AutoTempest: trim filter "${trim}" too aggressive (${trimFiltered.length}/${comps.length}), keeping all`);
+        }
+      }
+    }
+
+    return summarize(finalComps);
   } catch (e) {
     console.error("AutoTempest error:", e);
     return null;

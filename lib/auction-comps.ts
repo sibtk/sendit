@@ -32,11 +32,12 @@ export interface CompSummary {
 export async function getAuctionComps(
   year: number,
   make: string,
-  model: string
+  model: string,
+  trim?: string | null
 ): Promise<CompSummary | null> {
   try {
     const { searchBidFaxSold } = await import("./scraper-bidfax");
-    const comps = await searchBidFaxSold(make, model, year);
+    const comps = await searchBidFaxSold(make, model, year, trim);
 
     if (comps.length === 0) return null;
 

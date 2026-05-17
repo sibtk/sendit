@@ -205,9 +205,9 @@ export async function POST(request: NextRequest) {
             send("listing", { listing, fees: streamFees, shipping: streamShipping });
 
             // Fire comps in background
-            const compsPromise = getAuctionComps(listing.year, listing.make, listing.model)
+            const compsPromise = getAuctionComps(listing.year, listing.make, listing.model, listing.trim)
               .catch(() => null);
-            const retailPromise = getRetailComps(listing.year, listing.make, listing.model, body.userZip || "77001")
+            const retailPromise = getRetailComps(listing.year, listing.make, listing.model, body.userZip || "77001", listing.trim)
               .catch(() => null);
 
             // VIN decode + recalls in parallel
@@ -529,9 +529,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Start comps searches IMMEDIATELY in parallel — don't await yet
-    const compsPromise = getAuctionComps(listing.year, listing.make, listing.model)
+    const compsPromise = getAuctionComps(listing.year, listing.make, listing.model, listing.trim)
       .catch((e) => { console.error("Auction comps failed:", e); return null; });
-    const retailPromise = getRetailComps(listing.year, listing.make, listing.model, body.userZip || "77001")
+    const retailPromise = getRetailComps(listing.year, listing.make, listing.model, body.userZip || "77001", listing.trim)
       .catch((e) => { console.error("Retail comps failed:", e); return null; });
 
     // Steps 3-4: Run VIN decode + recalls in PARALLEL (saves 2-4 seconds)
