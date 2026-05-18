@@ -124,6 +124,10 @@ function LiveAnalysis() {
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
+          if (res.status === 429 || data.rateLimited) {
+            router.replace("/upgrade");
+            return;
+          }
           setError(data.error || `Analysis failed (${res.status})`);
           setPhase("error");
           return;
