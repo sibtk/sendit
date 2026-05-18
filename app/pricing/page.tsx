@@ -86,10 +86,10 @@ function PricingContent() {
           <div className="mb-6">
             <h2 className="text-xl font-bold text-[#fafafa] mb-1">Pro</h2>
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold mono text-[#fafafa]">$19</span>
-              <span className="text-[#52525b]">/mo for 2 months</span>
+              <span className="text-4xl font-bold mono text-[#fafafa]">$1</span>
+              <span className="text-[#52525b]">/first month</span>
             </div>
-            <div className="text-[12px] text-[#52525b] mt-1">then $49/mo</div>
+            <div className="text-[12px] text-[#52525b] mt-1">then $30/mo · cancel anytime</div>
           </div>
 
           <ul className="space-y-3 mb-8 text-[14px] text-[#a1a1aa]">
@@ -127,7 +127,7 @@ function PricingContent() {
           <div className="mb-6">
             <h2 className="text-xl font-bold text-[#fafafa] mb-1">Dealer</h2>
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold mono text-[#fafafa]">$149</span>
+              <span className="text-4xl font-bold mono text-[#fafafa]">$120</span>
               <span className="text-[#52525b]">/month</span>
             </div>
           </div>
@@ -138,6 +138,9 @@ function PricingContent() {
             </li>
             <li className="flex items-center gap-2">
               <span className="text-[#7dd3fc]">+</span> Everything in Pro
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="text-[#7dd3fc]">+</span> Early access to new features
             </li>
             <li className="flex items-center gap-2">
               <span className="text-[#7dd3fc]">+</span> Priority support

@@ -30,7 +30,7 @@ export default function Home() {
             className="inline-flex items-center gap-2 rounded-full border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.04] px-3.5 py-1.5 mb-4 hover:bg-[#7dd3fc]/[0.08] transition-all group"
           >
             <span className="text-[12px] text-[#7dd3fc]/70 group-hover:text-[#7dd3fc] transition-colors">
-              Get Pro now — $19/mo your first 2 months
+              Get Pro for $1 your first month
             </span>
             <span className="text-[11px] text-[#7dd3fc]/40">→</span>
           </a>

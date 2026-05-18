@@ -42,11 +42,10 @@ export async function POST(request: NextRequest) {
     if (isProPlan && isNewCustomer) {
       // Create a one-time coupon for $30 off (makes first month $19)
       const coupon = await stripe.coupons.create({
-        amount_off: 3000,
+        amount_off: 2900,
         currency: "usd",
-        duration: "repeating",
-        duration_in_months: 2,
-        name: "Intro — $19/mo for 2 months",
+        duration: "once",
+        name: "Intro — $1 first month",
       });
       sessionParams.discounts = [{ coupon: coupon.id }];
       sessionParams.allow_promotion_codes = false; // can't stack with promo codes
