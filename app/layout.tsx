@@ -22,12 +22,13 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "sendit scan — Should You Send It?",
-  description: "Paste a Copart or IAA link. Get AI damage analysis, repair costs, market comps, and a flip verdict in 15 seconds.",
+  title: "sendit scan — Copart & IAA Auction Analyzer | AI Damage Analysis & Flip Calculator",
+  description: "Free Copart and IAA salvage auction analyzer. Paste any listing — get AI photo damage analysis, repair cost estimates, real auction and retail comps, fee calculator, shipping estimates, and a profit/loss flip verdict in 30 seconds. The sendit car auction tool for flippers and dealers.",
+  keywords: ["sendit", "sendit scan", "sendit car", "sendit auction", "copart analyzer", "IAA analyzer", "salvage auction tool", "copart fee calculator", "car flip calculator", "auction damage analysis", "salvage car analyzer", "copart profit calculator", "IAA fee calculator", "should I buy this car", "copart flip tool", "salvage flip calculator"],
   metadataBase: new URL("https://senditscan.com"),
   openGraph: {
-    title: "sendit scan — Should You Send It?",
-    description: "AI-powered auction car analysis. Paste a link, get the verdict.",
+    title: "sendit scan — Copart & IAA Auction Analyzer",
+    description: "Free salvage auction analyzer. AI damage analysis, repair estimates, real comps, and profit/loss verdicts for Copart and IAA listings in 30 seconds.",
     siteName: "sendit scan",
     type: "website",
     url: "https://senditscan.com",
@@ -35,8 +36,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "sendit scan — Should You Send It?",
-    description: "AI-powered auction car analysis. Paste a link, get the verdict.",
+    title: "sendit scan — Copart & IAA Auction Analyzer",
+    description: "Free salvage auction analyzer. AI damage analysis, repair estimates, real comps, and profit/loss verdicts in 30 seconds.",
     images: ["/og.png"],
   },
   icons: {
