@@ -22,9 +22,18 @@ export default function Home() {
             </span>
             <span className="text-white/90">?</span>
           </h1>
-          <p className="mb-2 text-[15px] text-white/30">
+          <p className="mb-3 text-[15px] text-white/30">
             Paste an IAA or Copart URL. Get the verdict.
           </p>
+          <a
+            href="/pricing"
+            className="inline-flex items-center gap-2 rounded-full border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.04] px-3.5 py-1.5 mb-4 hover:bg-[#7dd3fc]/[0.08] transition-all group"
+          >
+            <span className="text-[12px] text-[#7dd3fc]/70 group-hover:text-[#7dd3fc] transition-colors">
+              Get Pro now — $19/mo your first 2 months
+            </span>
+            <span className="text-[11px] text-[#7dd3fc]/40">→</span>
+          </a>
 
           {/* Interactive form hydrates after JS loads */}
           <Suspense fallback={<FormSkeleton />}>

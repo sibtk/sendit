@@ -44,8 +44,9 @@ export async function POST(request: NextRequest) {
       const coupon = await stripe.coupons.create({
         amount_off: 3000,
         currency: "usd",
-        duration: "once",
-        name: "First month intro — $19",
+        duration: "repeating",
+        duration_in_months: 2,
+        name: "Intro — $19/mo for 2 months",
       });
       sessionParams.discounts = [{ coupon: coupon.id }];
       sessionParams.allow_promotion_codes = false; // can't stack with promo codes

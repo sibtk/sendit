@@ -65,7 +65,7 @@ export default function UpgradePage() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-[16px] font-bold text-[#fafafa] mb-1">
-              Pro — <span className="mono">$19</span><span className="text-[#52525b] text-[13px] font-normal"> first month</span>
+              Pro — <span className="mono">$19</span><span className="text-[#52525b] text-[13px] font-normal">/mo for 2 months</span>
             </h3>
             <p className="text-[13px] text-[#52525b]">50 scans/month. Then $49/mo. Full damage analysis, comps, bid simulator.</p>
           </div>
