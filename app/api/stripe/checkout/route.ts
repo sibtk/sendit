@@ -11,7 +11,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing price ID" }, { status: 400 });
     }
 
-    const session = await stripe.checkout.sessions.create({
+    // Check if this is the Pro plan — apply first month discount
+    const proPriceId = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || "";
+    const isProPlan = priceId === proPriceId;
+
+    // Check if this user already had a subscription (no double-dipping on intro price)
+    let isNewCustomer = true;
+    if (email) {
+      const existing = await stripe.customers.list({ email, limit: 1 });
+      if (existing.data.length > 0) {
+        const subs = await stripe.subscriptions.list({ customer: existing.data[0].id, limit: 1 });
+        if (subs.data.length > 0) isNewCustomer = false;
+      }
+    }
+
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
@@ -22,7 +36,22 @@ export async function POST(request: NextRequest) {
       metadata: {
         userId: userId || "",
       },
-    });
+    };
+
+    // Auto-apply $30 off first month for new Pro subscribers
+    if (isProPlan && isNewCustomer) {
+      // Create a one-time coupon for $30 off (makes first month $19)
+      const coupon = await stripe.coupons.create({
+        amount_off: 3000,
+        currency: "usd",
+        duration: "once",
+        name: "First month intro — $19",
+      });
+      sessionParams.discounts = [{ coupon: coupon.id }];
+      sessionParams.allow_promotion_codes = false; // can't stack with promo codes
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

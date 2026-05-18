@@ -65,9 +65,9 @@ export default function UpgradePage() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-[16px] font-bold text-[#fafafa] mb-1">
-              Pro — <span className="mono">$49</span><span className="text-[#52525b] text-[13px] font-normal">/mo</span>
+              Pro — <span className="mono">$19</span><span className="text-[#52525b] text-[13px] font-normal"> first month</span>
             </h3>
-            <p className="text-[13px] text-[#52525b]">50 scans/month. Full damage analysis, comps, bid simulator.</p>
+            <p className="text-[13px] text-[#52525b]">50 scans/month. Then $49/mo. Full damage analysis, comps, bid simulator.</p>
           </div>
           <button
             onClick={() => router.push("/pricing")}
@@ -104,8 +104,8 @@ export default function UpgradePage() {
             <div className="text-[11px] text-[#3f3f46] mt-1">Per scan</div>
           </div>
           <div>
-            <div className="mono text-2xl font-bold text-[#e4e4e7]">$0.98</div>
-            <div className="text-[11px] text-[#3f3f46] mt-1">Per scan on Pro</div>
+            <div className="mono text-2xl font-bold text-[#e4e4e7]">$0.38</div>
+            <div className="text-[11px] text-[#3f3f46] mt-1">Per scan first month</div>
           </div>
           <div>
             <div className="mono text-2xl font-bold text-[#f87171]">$5K+</div>
