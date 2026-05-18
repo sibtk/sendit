@@ -36,7 +36,7 @@ export default function UpgradePage() {
               <p className="text-[13px] text-[#52525b]">3 scans per week. No card required.</p>
             </div>
             <button
-              onClick={() => router.push("/login")}
+              onClick={() => router.push("/login?mode=signup")}
               className="rounded-xl bg-green-500/20 border border-green-500/30 px-6 py-2.5 text-[14px] font-semibold text-green-400 hover:bg-green-500/30 transition-all"
             >
               Sign up free

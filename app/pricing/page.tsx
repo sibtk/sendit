@@ -17,7 +17,7 @@ function PricingContent() {
 
   async function handleCheckout(priceId: string) {
     if (!user) {
-      router.push("/login");
+      router.push("/login?mode=signup");
       return;
     }
 
