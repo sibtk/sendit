@@ -86,7 +86,7 @@ function PricingContent() {
           <div className="mb-6">
             <h2 className="text-xl font-bold text-[#fafafa] mb-1">Pro</h2>
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold mono text-[#fafafa]">$1</span>
+              <span className="text-4xl font-bold mono text-[#fafafa]">$5</span>
               <span className="text-[#52525b]">/first month</span>
             </div>
             <div className="text-[12px] text-[#52525b] mt-1">then $30/mo · cancel anytime</div>
