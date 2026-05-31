@@ -20,8 +20,21 @@ export async function POST(request: NextRequest) {
     if (email) {
       const existing = await stripe.customers.list({ email, limit: 1 });
       if (existing.data.length > 0) {
-        const subs = await stripe.subscriptions.list({ customer: existing.data[0].id, limit: 1 });
-        if (subs.data.length > 0) isNewCustomer = false;
+        const subs = await stripe.subscriptions.list({
+          customer: existing.data[0].id,
+          status: "active",
+          limit: 1,
+        });
+        // Block checkout if user already has an active subscription
+        if (subs.data.length > 0) {
+          return NextResponse.json(
+            { error: "active_subscription", message: "You already have an active subscription. Manage your plan in subscription settings." },
+            { status: 409 }
+          );
+        }
+        // Check for any past subs (active or not) to determine intro pricing
+        const allSubs = await stripe.subscriptions.list({ customer: existing.data[0].id, limit: 1 });
+        if (allSubs.data.length > 0) isNewCustomer = false;
       }
     }
 
@@ -30,7 +43,7 @@ export async function POST(request: NextRequest) {
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       allow_promotion_codes: true,
-      success_url: `${request.nextUrl.origin}/pricing?success=true`,
+      success_url: `${request.nextUrl.origin}/subscription?success=true`,
       cancel_url: `${request.nextUrl.origin}/pricing?canceled=true`,
       customer_email: email || undefined,
       metadata: {

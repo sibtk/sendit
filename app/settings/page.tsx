@@ -260,6 +260,17 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+        {/* Account */}
+        <section>
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-white/20 mb-4">Account</h2>
+          <a
+            href="/subscription"
+            className="block w-full rounded-lg border border-white/[0.06] px-4 py-3 transition-all hover:border-white/[0.12] text-left"
+          >
+            <div className="text-[13px] text-white/60">Manage subscription</div>
+            <div className="text-[11px] text-white/20 mt-0.5">View plan, billing, and upgrade options</div>
+          </a>
+        </section>
       </div>
     </div>
   );

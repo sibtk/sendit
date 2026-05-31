@@ -7,13 +7,20 @@ import { createBrowserClient } from "@/lib/auth";
 import { Suspense } from "react";
 
 function PricingContent() {
-  const { user } = useAuth();
+  const { user, tier } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
 
   const success = searchParams.get("success") === "true";
   const canceled = searchParams.get("canceled") === "true";
+
+  // Redirect paid users to subscription management
+  const isPaid = tier === "pro" || tier === "dealer";
+  if (user && isPaid && !success && !canceled) {
+    router.replace("/subscription");
+    return null;
+  }
 
   async function handleCheckout(priceId: string) {
     if (!user) {
@@ -37,6 +44,10 @@ function PricingContent() {
       });
 
       const data = await res.json();
+      if (data.error === "active_subscription") {
+        router.push("/subscription");
+        return;
+      }
       if (data.url) {
         window.location.href = data.url;
       } else {
