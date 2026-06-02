@@ -1,14 +1,16 @@
 import { Metadata } from "next";
+import { BlogSchema } from "@/components/blog-schema";
 
 export const metadata: Metadata = {
   title: "Most Profitable Cars to Flip from Copart & IAA in 2026 | sendit scan",
-  description: "Which makes and models have the best flip margins at salvage auctions? Data-driven breakdown of what's actually making money for flippers in 2026.",
-  keywords: "most profitable cars to flip, best copart cars to flip, profitable salvage cars 2026, best cars to buy at auction, copart flip profits",
+  description: "Hellcats at $5-15K profit, Tacomas at $3-8K with almost zero risk. Here are the exact makes and models making money at salvage auctions right now — and which ones to avoid.",
+  keywords: "most profitable cars to flip, best copart cars to flip, profitable salvage cars 2026, best cars to buy at auction, copart flip profits, best cars to flip, best vehicles to flip for profit 2026",
 };
 
 export default function MostProfitableCarsGuide() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
+      <BlogSchema title="Most Profitable Cars to Flip from Copart & IAA in 2026" description="Data-driven breakdown of which makes and models have the best flip margins at salvage auctions." slug="most-profitable-cars-to-flip" datePublished="2026-05-13" />
       <article>
         <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
@@ -58,6 +60,17 @@ export default function MostProfitableCarsGuide() {
             <h2 className="text-[20px] font-semibold text-[#e4e4e7] mb-3">Find the Deals Automatically</h2>
             <p>Instead of browsing hundreds of listings, paste any Copart or IAA URL into sendit scan. AI analyzes the damage photos, pulls real market comps, calculates repairs, and tells you if it's a BUY, PASS, or RISKY — with exact profit numbers. 15 seconds per car instead of 30 minutes.</p>
           </section>
+        </div>
+
+        <div className="mt-12 mb-8 text-[13px] text-[#52525b]">
+          <p className="font-medium text-white/20 mb-2">Related guides</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <a href="/blog/how-to-estimate-repair-costs" className="hover:text-[#7dd3fc] transition-colors">Estimating Repair Costs</a>
+            <a href="/blog/salvage-vs-rebuilt-title" className="hover:text-[#7dd3fc] transition-colors">Salvage vs Rebuilt Title</a>
+            <a href="/blog/copart-fees-guide" className="hover:text-[#7dd3fc] transition-colors">Copart Fees Guide</a>
+            <a href="/blog/copart-vs-iaa" className="hover:text-[#7dd3fc] transition-colors">Copart vs IAA</a>
+            <a href="/tools/fees" className="hover:text-[#7dd3fc] transition-colors">Fee Calculator</a>
+          </div>
         </div>
 
         <div className="mt-12 rounded-xl border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.03] px-6 py-5 text-center">

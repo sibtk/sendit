@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { BlogSchema } from "@/components/blog-schema";
 
 export const metadata: Metadata = {
   title: "IAA Fees Explained: Complete Buyer's Guide 2026 | sendit scan",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 export default function IAAFeesGuide() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
+      <BlogSchema title="IAA Fees Explained: Complete Buyer's Guide 2026" description="Every IAA fee broken down — 35-tier buyer premium, internet bid fee, gate fee, environmental fee." slug="iaa-fees-guide" datePublished="2026-05-13" />
       <article>
         <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
@@ -59,6 +61,17 @@ export default function IAAFeesGuide() {
             <h2 className="text-[20px] font-semibold text-[#e4e4e7] mb-3">Calculate Your Exact IAA Cost</h2>
             <p>Don't guess — calculate it. Use our free IAA fee calculator to see your exact out-the-door cost, or paste any IAA listing into sendit scan for a full breakdown including fees, shipping, repairs, and profit projection.</p>
           </section>
+        </div>
+
+        <div className="mt-12 mb-8 text-[13px] text-[#52525b]">
+          <p className="font-medium text-white/20 mb-2">Related guides</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <a href="/blog/copart-fees-guide" className="hover:text-[#7dd3fc] transition-colors">Copart Fees Guide</a>
+            <a href="/blog/copart-vs-iaa" className="hover:text-[#7dd3fc] transition-colors">Copart vs IAA</a>
+            <a href="/blog/how-to-estimate-repair-costs" className="hover:text-[#7dd3fc] transition-colors">Estimating Repair Costs</a>
+            <a href="/blog/most-profitable-cars-to-flip" className="hover:text-[#7dd3fc] transition-colors">Most Profitable Cars to Flip</a>
+            <a href="/tools/fees" className="hover:text-[#7dd3fc] transition-colors">Fee Calculator</a>
+          </div>
         </div>
 
         <div className="mt-12 rounded-xl border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.03] px-6 py-5 text-center">

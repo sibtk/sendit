@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { BlogSchema } from "@/components/blog-schema";
 
 export const metadata: Metadata = {
   title: "How to Estimate Repair Costs on a Salvage Car Before You Bid | sendit scan",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 export default function RepairCostGuide() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
+      <BlogSchema title="How to Estimate Repair Costs on a Salvage Car Before You Bid" description="Learn how to assess damage from photos, estimate parts and labor, and calculate your real all-in cost." slug="how-to-estimate-repair-costs" datePublished="2026-05-13" />
       <article>
         <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
@@ -83,6 +85,17 @@ export default function RepairCostGuide() {
             <h2 className="text-[20px] font-semibold text-[#e4e4e7] mb-3">Or Just Let AI Do It</h2>
             <p>All of the above takes 30-60 minutes per car. Or you can paste the listing URL into sendit scan and get an AI damage assessment from photos, itemized repair estimate, market comps, and a flip verdict in 15 seconds. The tool adjusts estimates to your repair profile — whether you own a shop or use a budget body shop.</p>
           </section>
+        </div>
+
+        <div className="mt-12 mb-8 text-[13px] text-[#52525b]">
+          <p className="font-medium text-white/20 mb-2">Related guides</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <a href="/blog/most-profitable-cars-to-flip" className="hover:text-[#7dd3fc] transition-colors">Most Profitable Cars to Flip</a>
+            <a href="/blog/salvage-vs-rebuilt-title" className="hover:text-[#7dd3fc] transition-colors">Salvage vs Rebuilt Title</a>
+            <a href="/blog/copart-fees-guide" className="hover:text-[#7dd3fc] transition-colors">Copart Fees Guide</a>
+            <a href="/tools/fees" className="hover:text-[#7dd3fc] transition-colors">Fee Calculator</a>
+            <a href="/blog/state-title-laws-guide" className="hover:text-[#7dd3fc] transition-colors">Title Laws by State</a>
+          </div>
         </div>
 
         <div className="mt-12 rounded-xl border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.03] px-6 py-5 text-center">

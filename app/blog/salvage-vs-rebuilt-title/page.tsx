@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { BlogSchema } from "@/components/blog-schema";
 
 export const metadata: Metadata = {
   title: "Salvage vs Rebuilt Title: What's the Difference? 2026 Guide | sendit scan",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 export default function SalvageVsRebuiltGuide() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
+      <BlogSchema title="Salvage vs Rebuilt Title: What's the Difference and What's It Worth?" description="How salvage and rebuilt titles affect resale value, insurance, and registration." slug="salvage-vs-rebuilt-title" datePublished="2026-05-13" />
       <article>
         <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
@@ -44,6 +46,17 @@ export default function SalvageVsRebuiltGuide() {
             <p>The title discount is your profit margin. Buy a car at salvage auction for 40-60% of clean value, spend 10-20% on repairs, sell at rebuilt value (80-90% of clean). The spread is your money.</p>
             <p className="mt-3">sendit scan calculates all of this automatically — title impact, repair costs, market value, and profit projection. Paste any listing and see the numbers.</p>
           </section>
+        </div>
+
+        <div className="mt-12 mb-8 text-[13px] text-[#52525b]">
+          <p className="font-medium text-white/20 mb-2">Related guides</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <a href="/blog/state-title-laws-guide" className="hover:text-[#7dd3fc] transition-colors">Title Laws by State</a>
+            <a href="/blog/how-to-estimate-repair-costs" className="hover:text-[#7dd3fc] transition-colors">Estimating Repair Costs</a>
+            <a href="/blog/most-profitable-cars-to-flip" className="hover:text-[#7dd3fc] transition-colors">Most Profitable Cars to Flip</a>
+            <a href="/tools/title-laws" className="hover:text-[#7dd3fc] transition-colors">State Title Laws Tool</a>
+            <a href="/blog/copart-fees-guide" className="hover:text-[#7dd3fc] transition-colors">Copart Fees Guide</a>
+          </div>
         </div>
 
         <div className="mt-12 rounded-xl border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.03] px-6 py-5 text-center">

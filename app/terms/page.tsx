@@ -1,3 +1,10 @@
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Service | sendit scan",
+  description: "Terms of service for sendit scan — the AI-powered Copart and IAA salvage auction analyzer for car flippers and dealers.",
+};
+
 export default function TermsPage() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">

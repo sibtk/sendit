@@ -1,3 +1,10 @@
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy | sendit scan",
+  description: "How sendit scan handles your data, what we collect, and how to request deletion. Privacy policy for our Copart and IAA auction analyzer.",
+};
+
 export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">

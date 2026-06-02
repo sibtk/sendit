@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { BlogSchema } from "@/components/blog-schema";
 
 export const metadata: Metadata = {
   title: "Copart Fees Explained: Complete Buyer's Guide 2026 | sendit scan",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 export default function CopartFeesGuide() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
+      <BlogSchema title="Copart Fees Explained: Complete Buyer's Guide 2026" description="Every Copart fee broken down — buyer premium tiers, gate fee, internet bid fee, environmental fee, title fee." slug="copart-fees-guide" datePublished="2026-05-13" />
       <article>
         <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
@@ -78,6 +80,17 @@ export default function CopartFeesGuide() {
             <p>The mistake most buyers make: they bid based on the car's value without accounting for fees, shipping, and repairs. A car worth $20,000 clean that you bid $15,000 on sounds like a deal — until you add $1,173 in fees, $800 in shipping, and $5,000 in repairs. Now you're all-in at $21,973 on a $20,000 car.</p>
             <p className="mt-3">That's why we built sendit scan — paste any Copart or IAA listing URL and get the full breakdown instantly: fees, shipping, AI damage assessment, repair costs, and a profit projection. Know your real all-in cost before you bid.</p>
           </section>
+        </div>
+
+        <div className="mt-12 mb-8 text-[13px] text-[#52525b]">
+          <p className="font-medium text-white/20 mb-2">Related guides</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <a href="/blog/iaa-fees-guide" className="hover:text-[#7dd3fc] transition-colors">IAA Fees Guide</a>
+            <a href="/blog/copart-vs-iaa" className="hover:text-[#7dd3fc] transition-colors">Copart vs IAA</a>
+            <a href="/blog/how-to-estimate-repair-costs" className="hover:text-[#7dd3fc] transition-colors">Estimating Repair Costs</a>
+            <a href="/blog/most-profitable-cars-to-flip" className="hover:text-[#7dd3fc] transition-colors">Most Profitable Cars to Flip</a>
+            <a href="/tools/fees" className="hover:text-[#7dd3fc] transition-colors">Fee Calculator</a>
+          </div>
         </div>
 
         <div className="mt-12 rounded-xl border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.03] px-6 py-5 text-center">

@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { BlogSchema } from "@/components/blog-schema";
 
 export const metadata: Metadata = {
   title: "Salvage Title Laws by State 2026: Complete Flipper's Guide | sendit scan",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 export default function StateTitleLawsGuide() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
+      <BlogSchema title="Salvage Title Laws by State: The Complete Flipper's Guide 2026" description="Every state's salvage and rebuilt title laws — inspection requirements, fees, flipper-friendly ratings, and age exemptions." slug="state-title-laws-guide" datePublished="2026-05-13" />
       <article>
         <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
@@ -89,6 +91,17 @@ export default function StateTitleLawsGuide() {
             <h2 className="text-[20px] font-semibold text-[#e4e4e7] mb-3">Look Up Any State</h2>
             <p>We built a complete database of salvage and rebuilt title laws for all 50 states — inspection costs, fees, age exemptions, flipper ratings, and out-of-state acceptance rules. Use it to plan your next flip.</p>
           </section>
+        </div>
+
+        <div className="mt-12 mb-8 text-[13px] text-[#52525b]">
+          <p className="font-medium text-white/20 mb-2">Related guides</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <a href="/blog/salvage-vs-rebuilt-title" className="hover:text-[#7dd3fc] transition-colors">Salvage vs Rebuilt Title</a>
+            <a href="/blog/how-to-estimate-repair-costs" className="hover:text-[#7dd3fc] transition-colors">Estimating Repair Costs</a>
+            <a href="/blog/most-profitable-cars-to-flip" className="hover:text-[#7dd3fc] transition-colors">Most Profitable Cars to Flip</a>
+            <a href="/blog/copart-fees-guide" className="hover:text-[#7dd3fc] transition-colors">Copart Fees Guide</a>
+            <a href="/tools/title-laws" className="hover:text-[#7dd3fc] transition-colors">State Title Laws Tool</a>
+          </div>
         </div>
 
         <div className="mt-12 rounded-xl border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.03] px-6 py-5 text-center">

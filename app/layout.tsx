@@ -59,6 +59,60 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${grotesk.variable} ${jetbrains.variable}`}>
       <head>
         <link rel="preload" href="/bg.jpg" as="image" type="image/jpeg" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "sendit scan",
+              url: "https://senditscan.com",
+              logo: "https://senditscan.com/og.png",
+              description: "AI-powered Copart and IAA salvage auction analyzer for car flippers and dealers.",
+              contactPoint: {
+                "@type": "ContactPoint",
+                email: "hello@senditscan.com",
+                contactType: "customer support",
+              },
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              name: "sendit scan",
+              url: "https://senditscan.com",
+              applicationCategory: "BusinessApplication",
+              operatingSystem: "Web",
+              offers: [
+                {
+                  "@type": "Offer",
+                  name: "Free",
+                  price: "0",
+                  priceCurrency: "USD",
+                  description: "3 analyses per week",
+                },
+                {
+                  "@type": "Offer",
+                  name: "Pro",
+                  price: "30",
+                  priceCurrency: "USD",
+                  description: "50 analyses per month, AI damage analysis, comps, repair estimates",
+                },
+                {
+                  "@type": "Offer",
+                  name: "Dealer",
+                  price: "120",
+                  priceCurrency: "USD",
+                  description: "Unlimited analyses, priority support, fleet tracking",
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body className="min-h-screen relative flex flex-col" style={{ fontFamily: "var(--font-inter)" }}>
         <AuthProvider>
@@ -93,7 +147,7 @@ export default function RootLayout({
           <main className="flex-1 relative z-10">{children}</main>
           {/* Footer */}
           <footer className="relative z-10 border-t border-white/[0.04] mt-auto">
-            <div className="mx-auto max-w-6xl px-5 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="mx-auto max-w-6xl px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
               <span className="text-[11px] text-[#3f3f46]">
                 &copy; {new Date().getFullYear()} sendit scan
               </span>
