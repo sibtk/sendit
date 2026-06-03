@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createBrowserClient } from "@/lib/auth";
@@ -11,9 +11,23 @@ function PricingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
+  const clickTracked = useRef(false);
 
   const success = searchParams.get("success") === "true";
   const canceled = searchParams.get("canceled") === "true";
+  const ref = searchParams.get("ref");
+
+  // Track affiliate click
+  useEffect(() => {
+    if (ref && !clickTracked.current) {
+      clickTracked.current = true;
+      fetch("/api/affiliate/click", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ref }),
+      }).catch(() => {});
+    }
+  }, [ref]);
 
   // Redirect paid users to subscription management
   const isPaid = tier === "pro" || tier === "dealer";
@@ -40,6 +54,7 @@ function PricingContent() {
           priceId,
           userId: user.id,
           email: user.email,
+          ref: ref || undefined,
         }),
       });
 
@@ -61,6 +76,10 @@ function PricingContent() {
 
   const proPriceId = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || "";
   const dealerPriceId = process.env.NEXT_PUBLIC_STRIPE_DEALER_PRICE_ID || "";
+
+  const hasDiscount = !!ref;
+  const discountedPro = 22.5;
+  const discountedDealer = 90;
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-16">
@@ -86,6 +105,11 @@ function PricingContent() {
         <p className="text-[#52525b] text-lg">
           One bad buy costs more than a year of sendit scan.
         </p>
+        {hasDiscount && (
+          <div className="mt-4 inline-block rounded-full border border-green-500/20 bg-green-500/[0.06] px-4 py-1.5">
+            <span className="text-[13px] text-green-400 font-medium">25% off your first month</span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
@@ -96,11 +120,24 @@ function PricingContent() {
           </div>
           <div className="mb-6">
             <h2 className="text-xl font-bold text-[#fafafa] mb-1">Pro</h2>
-            <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold mono text-[#fafafa]">$5</span>
-              <span className="text-[#52525b]">/first month</span>
-            </div>
-            <div className="text-[12px] text-[#52525b] mt-1">then $30/mo · cancel anytime</div>
+            {hasDiscount ? (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold mono text-[#fafafa]">${discountedPro.toFixed(0)}</span>
+                  <span className="text-lg mono text-white/25 line-through">${"30"}</span>
+                  <span className="text-[#52525b]">/first month</span>
+                </div>
+                <div className="text-[12px] text-[#52525b] mt-1">then $30/mo · cancel anytime</div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold mono text-[#fafafa]">$30</span>
+                  <span className="text-[#52525b]">/month</span>
+                </div>
+                <div className="text-[12px] text-[#52525b] mt-1">cancel anytime</div>
+              </>
+            )}
           </div>
 
           <ul className="space-y-3 mb-8 text-[14px] text-[#a1a1aa]">
@@ -137,10 +174,21 @@ function PricingContent() {
         <div className="rounded-2xl border border-[#27272a] bg-[#141414] p-8">
           <div className="mb-6">
             <h2 className="text-xl font-bold text-[#fafafa] mb-1">Dealer</h2>
-            <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold mono text-[#fafafa]">$120</span>
-              <span className="text-[#52525b]">/month</span>
-            </div>
+            {hasDiscount ? (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold mono text-[#fafafa]">${discountedDealer}</span>
+                  <span className="text-lg mono text-white/25 line-through">${"120"}</span>
+                  <span className="text-[#52525b]">/first month</span>
+                </div>
+                <div className="text-[12px] text-[#52525b] mt-1">then $120/mo</div>
+              </>
+            ) : (
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-bold mono text-[#fafafa]">$120</span>
+                <span className="text-[#52525b]">/month</span>
+              </div>
+            )}
           </div>
 
           <ul className="space-y-3 mb-8 text-[14px] text-[#a1a1aa]">

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { HomeForm } from "@/components/home-form";
+import { PromoBanner } from "@/components/promo-banner";
 
 export default function Home() {
   return (
@@ -25,15 +26,9 @@ export default function Home() {
           <p className="mb-3 text-[15px] text-white/30">
             Paste an IAA or Copart URL. Get the verdict.
           </p>
-          <a
-            href="/pricing"
-            className="inline-flex items-center gap-2 rounded-full border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.04] px-3.5 py-1.5 mb-4 hover:bg-[#7dd3fc]/[0.08] transition-all group"
-          >
-            <span className="text-[12px] text-[#7dd3fc]/70 group-hover:text-[#7dd3fc] transition-colors">
-              Get Pro for $5 your first month
-            </span>
-            <span className="text-[11px] text-[#7dd3fc]/40">→</span>
-          </a>
+          <Suspense>
+            <PromoBanner />
+          </Suspense>
 
           {/* Interactive form hydrates after JS loads */}
           <Suspense fallback={<FormSkeleton />}>

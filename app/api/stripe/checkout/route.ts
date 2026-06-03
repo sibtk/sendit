@@ -5,18 +5,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
 export async function POST(request: NextRequest) {
   try {
-    const { priceId, userId, email } = await request.json();
+    const { priceId, userId, email, ref } = await request.json();
 
     if (!priceId) {
       return NextResponse.json({ error: "Missing price ID" }, { status: 400 });
     }
 
-    // Check if this is the Pro plan — apply first month discount
-    const proPriceId = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || "";
-    const isProPlan = priceId === proPriceId;
-
-    // Check if this user already had a subscription (no double-dipping on intro price)
-    let isNewCustomer = true;
+    // Check if this user already has an active subscription
     if (email) {
       const existing = await stripe.customers.list({ email, limit: 1 });
       if (existing.data.length > 0) {
@@ -32,9 +27,6 @@ export async function POST(request: NextRequest) {
             { status: 409 }
           );
         }
-        // Check for any past subs (active or not) to determine intro pricing
-        const allSubs = await stripe.subscriptions.list({ customer: existing.data[0].id, limit: 1 });
-        if (allSubs.data.length > 0) isNewCustomer = false;
       }
     }
 
@@ -48,17 +40,16 @@ export async function POST(request: NextRequest) {
       customer_email: email || undefined,
       metadata: {
         userId: userId || "",
+        ref: ref || "",
       },
     };
 
-    // Auto-apply $30 off first month for new Pro subscribers
-    if (isProPlan && isNewCustomer) {
-      // Create a one-time coupon for $30 off (makes first month $19)
+    // Apply 25% off first month for affiliate referrals
+    if (ref) {
       const coupon = await stripe.coupons.create({
-        amount_off: 2500,
-        currency: "usd",
+        percent_off: 25,
         duration: "once",
-        name: "Intro — $5 first month",
+        name: `25% off first month — ref:${ref}`,
       });
       sessionParams.discounts = [{ coupon: coupon.id }];
       sessionParams.allow_promotion_codes = false; // can't stack with promo codes

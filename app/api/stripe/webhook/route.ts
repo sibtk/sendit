@@ -39,13 +39,22 @@ export async function POST(request: NextRequest) {
         const priceId = subscription.items.data[0]?.price.id;
         const tier = priceId === process.env.NEXT_PUBLIC_STRIPE_DEALER_PRICE_ID ? "dealer" : "pro";
 
-        await sb.from("user_profiles").update({
+        const updateData: Record<string, unknown> = {
           tier,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
-        }).eq("id", userId);
+        };
 
-        console.log(`User ${userId} upgraded to ${tier}`);
+        // Track affiliate referral
+        const ref = session.metadata?.ref;
+        if (ref) {
+          updateData.referred_by = ref;
+          updateData.referral_date = new Date().toISOString();
+        }
+
+        await sb.from("user_profiles").update(updateData).eq("id", userId);
+
+        console.log(`User ${userId} upgraded to ${tier}${ref ? ` (ref: ${ref})` : ""}`);
       }
       break;
     }
