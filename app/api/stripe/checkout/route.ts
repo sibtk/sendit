@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
-      allow_promotion_codes: true,
       success_url: `${request.nextUrl.origin}/subscription?success=true`,
       cancel_url: `${request.nextUrl.origin}/pricing?canceled=true`,
       customer_email: email || undefined,
@@ -52,7 +51,8 @@ export async function POST(request: NextRequest) {
         name: `25% off first month — ref:${ref}`,
       });
       sessionParams.discounts = [{ coupon: coupon.id }];
-      sessionParams.allow_promotion_codes = false; // can't stack with promo codes
+    } else {
+      sessionParams.allow_promotion_codes = true;
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
