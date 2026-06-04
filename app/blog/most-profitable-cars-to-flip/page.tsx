@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 export default function MostProfitableCarsGuide() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
-      <BlogSchema title="Most Profitable Cars to Flip from Copart & IAA in 2026" description="Data-driven breakdown of which makes and models have the best flip margins at salvage auctions." slug="most-profitable-cars-to-flip" datePublished="2026-05-13" />
+      <BlogSchema title="Most Profitable Cars to Flip from Copart & IAA in 2026" description="Data-driven breakdown of which makes and models have the best flip margins at salvage auctions." slug="most-profitable-cars-to-flip" datePublished="2026-05-28" />
       <article>
-        <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
+        <time className="text-[11px] text-[#3f3f46]">May 28, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
           Most Profitable Cars to Flip from Copart & IAA in 2026
         </h1>

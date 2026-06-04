@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 export default function CopartFeesGuide() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
-      <BlogSchema title="Copart Fees Explained: Complete Buyer's Guide 2026" description="Every Copart fee broken down — buyer premium tiers, gate fee, internet bid fee, environmental fee, title fee." slug="copart-fees-guide" datePublished="2026-05-13" />
+      <BlogSchema title="Copart Fees Explained: Complete Buyer's Guide 2026" description="Every Copart fee broken down — buyer premium tiers, gate fee, internet bid fee, environmental fee, title fee." slug="copart-fees-guide" datePublished="2026-03-30" />
       <article>
-        <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
+        <time className="text-[11px] text-[#3f3f46]">March 30, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
           Copart Fees Explained: Complete Buyer's Guide 2026
         </h1>

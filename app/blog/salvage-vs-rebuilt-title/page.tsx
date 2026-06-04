@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 export default function SalvageVsRebuiltGuide() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
-      <BlogSchema title="Salvage vs Rebuilt Title: What's the Difference and What's It Worth?" description="How salvage and rebuilt titles affect resale value, insurance, and registration." slug="salvage-vs-rebuilt-title" datePublished="2026-05-13" />
+      <BlogSchema title="Salvage vs Rebuilt Title: What's the Difference and What's It Worth?" description="How salvage and rebuilt titles affect resale value, insurance, and registration." slug="salvage-vs-rebuilt-title" datePublished="2026-04-15" />
       <article>
-        <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
+        <time className="text-[11px] text-[#3f3f46]">April 15, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
           Salvage vs Rebuilt Title: What's the Difference and What's It Worth?
         </h1>

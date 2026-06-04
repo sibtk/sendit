@@ -154,11 +154,9 @@ export default function RootLayout({
               </span>
               <div className="flex items-center gap-4 text-[11px] text-[#3f3f46]">
                 <a href="/blog" className="hover:text-[#52525b] transition-colors">Blog</a>
-                <a href="/tools/fees" className="hover:text-[#52525b] transition-colors">Fee Calculator</a>
-                <a href="/tools/title-laws" className="hover:text-[#52525b] transition-colors">Title Laws</a>
+                <a href="/pricing" className="hover:text-[#52525b] transition-colors">Pricing</a>
                 <a href="/terms" className="hover:text-[#52525b] transition-colors">Terms</a>
                 <a href="/privacy" className="hover:text-[#52525b] transition-colors">Privacy</a>
-                <a href="/pricing" className="hover:text-[#52525b] transition-colors">Pricing</a>
                 <a href="mailto:hello@senditscan.com" className="hover:text-[#52525b] transition-colors">Contact</a>
               </div>
             </div>

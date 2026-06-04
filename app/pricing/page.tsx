@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createBrowserClient } from "@/lib/auth";
@@ -19,6 +19,18 @@ function PricingContent() {
   const urlRef = searchParams.get("ref");
   if (urlRef) saveRef(urlRef);
   const ref = urlRef || getRef();
+  const [refName, setRefName] = useState<string | null>(null);
+
+  const fetchRefName = useCallback(async () => {
+    if (!ref) return;
+    try {
+      const res = await fetch(`/api/affiliate/info?ref=${ref}`);
+      const data = await res.json();
+      if (data.name) setRefName(data.name);
+    } catch {}
+  }, [ref]);
+
+  useEffect(() => { fetchRefName(); }, [fetchRefName]);
 
   // Track affiliate click
   useEffect(() => {
@@ -114,7 +126,7 @@ function PricingContent() {
         </p>
         {hasDiscount && (
           <div className="mt-4 inline-block rounded-full border border-green-500/20 bg-green-500/[0.06] px-4 py-1.5">
-            <span className="text-[13px] text-green-400 font-medium">25% off your first month</span>
+            <span className="text-[13px] text-green-400 font-medium">25% off your first month{refName ? ` — from ${refName}` : ""}</span>
           </div>
         )}
       </div>
@@ -229,6 +241,11 @@ function PricingContent() {
       <p className="text-center text-[12px] text-[#3f3f46] mt-8">
         Cancel anytime. One avoided bad buy pays for years of sendit scan.
       </p>
+      {hasDiscount && (
+        <p className="text-center text-[11px] text-[#3f3f46] mt-2">
+          This page includes an affiliate link. The referrer may earn a commission at no extra cost to you.
+        </p>
+      )}
     </div>
   );
 }

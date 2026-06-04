@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 export default function StateTitleLawsGuide() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
-      <BlogSchema title="Salvage Title Laws by State: The Complete Flipper's Guide 2026" description="Every state's salvage and rebuilt title laws — inspection requirements, fees, flipper-friendly ratings, and age exemptions." slug="state-title-laws-guide" datePublished="2026-05-13" />
+      <BlogSchema title="Salvage Title Laws by State: The Complete Flipper's Guide 2026" description="Every state's salvage and rebuilt title laws — inspection requirements, fees, flipper-friendly ratings, and age exemptions." slug="state-title-laws-guide" datePublished="2026-04-28" />
       <article>
-        <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
+        <time className="text-[11px] text-[#3f3f46]">April 28, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
           Salvage Title Laws by State: The Complete Flipper's Guide 2026
         </h1>

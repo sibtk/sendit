@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 export default function CopartVsIAA() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
-      <BlogSchema title="Copart vs IAA: Which Auction Is Better for Flipping Cars?" description="Copart vs IAA compared — fees, inventory, buyer experience, and which platform gives better flip margins." slug="copart-vs-iaa" datePublished="2026-05-13" />
+      <BlogSchema title="Copart vs IAA: Which Auction Is Better for Flipping Cars?" description="Copart vs IAA compared — fees, inventory, buyer experience, and which platform gives better flip margins." slug="copart-vs-iaa" datePublished="2026-05-19" />
       <article>
-        <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
+        <time className="text-[11px] text-[#3f3f46]">May 19, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
           Copart vs IAA: Which Auction Is Better for Flipping Cars?
         </h1>

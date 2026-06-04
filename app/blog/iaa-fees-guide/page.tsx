@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 export default function IAAFeesGuide() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
-      <BlogSchema title="IAA Fees Explained: Complete Buyer's Guide 2026" description="Every IAA fee broken down — 35-tier buyer premium, internet bid fee, gate fee, environmental fee." slug="iaa-fees-guide" datePublished="2026-05-13" />
+      <BlogSchema title="IAA Fees Explained: Complete Buyer's Guide 2026" description="Every IAA fee broken down — 35-tier buyer premium, internet bid fee, gate fee, environmental fee." slug="iaa-fees-guide" datePublished="2026-03-22" />
       <article>
-        <time className="text-[11px] text-[#3f3f46]">May 13, 2026</time>
+        <time className="text-[11px] text-[#3f3f46]">March 22, 2026</time>
         <h1 className="text-3xl font-bold text-[#fafafa] mt-2 mb-4" style={{ fontFamily: "var(--font-grotesk)" }}>
           IAA Fees Explained: Complete Buyer's Guide 2026
         </h1>

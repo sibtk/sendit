@@ -6,48 +6,61 @@ export const metadata: Metadata = {
   description: "Expert guides on flipping cars from Copart and IAA auctions. Fee breakdowns, repair cost tips, title guides, and profit strategies.",
 };
 
+const tools = [
+  {
+    href: "/tools/fees",
+    title: "Copart & IAA Fee Calculator",
+    excerpt: "Calculate your exact out-the-door cost before you bid. Buyer premiums, gate fees, internet bid fees — both platforms.",
+  },
+  {
+    href: "/tools/title-laws",
+    title: "Salvage Title Laws by State",
+    excerpt: "Inspection requirements, fees, flipper-friendly ratings, and age exemptions for all 50 states.",
+  },
+];
+
 const posts = [
   {
-    slug: "copart-fees-guide",
-    title: "Copart Fees Explained: Complete Buyer's Guide 2026",
-    excerpt: "Every fee Copart charges — buyer premium, gate fee, internet bid fee, environmental fee, title fee. Know your real cost before you bid.",
-    date: "May 13, 2026",
-  },
-  {
-    slug: "iaa-fees-guide",
-    title: "IAA Fees Explained: Complete Buyer's Guide 2026",
-    excerpt: "IAA's 35-tier buyer premium, internet bid fees, gate fees, and how they differ from Copart. Calculate your total before auction day.",
-    date: "May 13, 2026",
-  },
-  {
-    slug: "salvage-vs-rebuilt-title",
-    title: "Salvage vs Rebuilt Title: What's the Difference and What's It Worth?",
-    excerpt: "How salvage and rebuilt titles affect resale value, insurance, and registration. State-by-state guide for flippers.",
-    date: "May 13, 2026",
-  },
-  {
-    slug: "how-to-estimate-repair-costs",
-    title: "How to Estimate Repair Costs on a Salvage Car Before You Bid",
-    excerpt: "The #1 mistake auction buyers make is underestimating repairs. Here's how to get it right using photos, comps, and AI.",
-    date: "May 13, 2026",
-  },
-  {
-    slug: "state-title-laws-guide",
-    title: "Salvage Title Laws by State: Complete Flipper's Guide 2026",
-    excerpt: "Every state's salvage and rebuilt title laws — inspection costs, fees, age exemptions, flipper-friendly ratings. The definitive reference.",
-    date: "May 13, 2026",
+    slug: "most-profitable-cars-to-flip",
+    title: "Most Profitable Cars to Flip from Copart & IAA in 2026",
+    excerpt: "Which makes and models have the best flip margins? Data-driven breakdown of what's actually making money at auction.",
+    date: "May 28, 2026",
   },
   {
     slug: "copart-vs-iaa",
     title: "Copart vs IAA: Which Auction Is Better for Flipping Cars?",
     excerpt: "Fees, inventory, buyer experience, and which platform gives you better margins. Real comparison from a flipper's perspective.",
-    date: "May 13, 2026",
+    date: "May 19, 2026",
   },
   {
-    slug: "most-profitable-cars-to-flip",
-    title: "Most Profitable Cars to Flip from Copart & IAA in 2026",
-    excerpt: "Which makes and models have the best flip margins? Data-driven breakdown of what's actually making money at auction.",
-    date: "May 13, 2026",
+    slug: "how-to-estimate-repair-costs",
+    title: "How to Estimate Repair Costs on a Salvage Car Before You Bid",
+    excerpt: "The #1 mistake auction buyers make is underestimating repairs. Here's how to get it right using photos, comps, and AI.",
+    date: "May 10, 2026",
+  },
+  {
+    slug: "state-title-laws-guide",
+    title: "Salvage Title Laws by State: Complete Flipper's Guide 2026",
+    excerpt: "Every state's salvage and rebuilt title laws — inspection costs, fees, age exemptions, flipper-friendly ratings. The definitive reference.",
+    date: "April 28, 2026",
+  },
+  {
+    slug: "salvage-vs-rebuilt-title",
+    title: "Salvage vs Rebuilt Title: What's the Difference and What's It Worth?",
+    excerpt: "How salvage and rebuilt titles affect resale value, insurance, and registration. State-by-state guide for flippers.",
+    date: "April 15, 2026",
+  },
+  {
+    slug: "copart-fees-guide",
+    title: "Copart Fees Explained: Complete Buyer's Guide 2026",
+    excerpt: "Every fee Copart charges — buyer premium, gate fee, internet bid fee, environmental fee, title fee. Know your real cost before you bid.",
+    date: "March 30, 2026",
+  },
+  {
+    slug: "iaa-fees-guide",
+    title: "IAA Fees Explained: Complete Buyer's Guide 2026",
+    excerpt: "IAA's 35-tier buyer premium, internet bid fees, gate fees, and how they differ from Copart. Calculate your total before auction day.",
+    date: "March 22, 2026",
   },
 ];
 
@@ -57,8 +70,23 @@ export default function BlogPage() {
       <h1 className="text-3xl font-bold text-[#fafafa] mb-2" style={{ fontFamily: "var(--font-grotesk)" }}>
         Blog
       </h1>
-      <p className="text-[#52525b] text-[15px] mb-10">Guides, tips, and data for salvage auction car flippers.</p>
+      <p className="text-[#52525b] text-[15px] mb-10">Guides, tools, and data for salvage auction car flippers.</p>
 
+      {/* Pinned tools */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10">
+        {tools.map((tool) => (
+          <Link key={tool.href} href={tool.href} className="block group">
+            <div className="rounded-xl border border-[#7dd3fc]/15 bg-[#7dd3fc]/[0.03] p-5 hover:border-[#7dd3fc]/30 transition-all h-full">
+              <h2 className="text-[15px] font-semibold text-[#e4e4e7] mb-1.5 group-hover:text-[#7dd3fc] transition-colors">
+                {tool.title}
+              </h2>
+              <p className="text-[13px] text-[#71717a] leading-relaxed">{tool.excerpt}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Posts */}
       <div className="space-y-8">
         {posts.map((post) => (
           <Link key={post.slug} href={`/blog/${post.slug}`} className="block group">
