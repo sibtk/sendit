@@ -19,6 +19,7 @@ export default function AnalysisPage() {
   const [isOwner, setIsOwner] = useState(false);
   const [stale, setStale] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -129,36 +130,60 @@ export default function AnalysisPage() {
           >
             Share
           </button>
-          {analysis?.listing?.url && (
-            <a
-              href={analysis.listing.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-md sm:rounded-lg border border-white/[0.08] px-2 sm:px-3.5 py-1 sm:py-1.5 text-[10px] sm:text-[12px] text-white/40 hover:text-white/60 transition-all"
-            >
-              View Listing ↗
-            </a>
-          )}
-          {isOwner && (
-            <button
-              onClick={() => {
-                const url = analysis?.listing?.url;
-                if (url) {
-                  deleteAnalysis(id);
-                  router.push(`/?url=${encodeURIComponent(url)}&fresh=true`);
-                } else {
-                  router.push("/");
-                }
-              }}
-              className="rounded-md sm:rounded-lg border border-white/[0.08] px-2 sm:px-3.5 py-1 sm:py-1.5 text-[10px] sm:text-[12px] text-white/40 hover:text-white/60 transition-all"
-            >
-              Re-analyze
-            </button>
-          )}
-          {stale && isOwner && (
-            <span className="hidden sm:inline rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-2.5 py-1 text-[11px] font-medium text-yellow-400">
-              Outdated
-            </span>
+          {/* Overflow menu for View Listing + Re-analyze */}
+          {(analysis?.listing?.url || isOwner) && (
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="rounded-md sm:rounded-lg border border-white/[0.08] px-1.5 sm:px-2.5 py-1 sm:py-1.5 text-white/40 hover:text-white/60 transition-all"
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="3" r="1.5" fill="currentColor"/>
+                  <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
+                  <circle cx="8" cy="13" r="1.5" fill="currentColor"/>
+                </svg>
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 top-9 z-50 w-44 rounded-xl border border-white/[0.08] bg-[#141416] p-1.5 shadow-xl shadow-black/50">
+                    {analysis?.listing?.url && (
+                      <a
+                        href={analysis.listing.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setMenuOpen(false)}
+                        className="block w-full rounded-lg px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/[0.04] hover:text-white/80 transition-all"
+                      >
+                        View Listing ↗
+                      </a>
+                    )}
+                    {isOwner && (
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          const url = analysis?.listing?.url;
+                          if (url) {
+                            deleteAnalysis(id);
+                            router.push(`/?url=${encodeURIComponent(url)}&fresh=true`);
+                          } else {
+                            router.push("/");
+                          }
+                        }}
+                        className="w-full rounded-lg px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/[0.04] hover:text-white/80 transition-all"
+                      >
+                        Re-analyze
+                      </button>
+                    )}
+                    {stale && isOwner && (
+                      <div className="px-3 py-2 text-[11px] text-yellow-400/60">
+                        Outdated analysis
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>

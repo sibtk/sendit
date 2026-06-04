@@ -55,6 +55,15 @@ export function HomeForm() {
 
   async function handleAnalyze() {
     if (!url.trim()) return;
+    setError(null);
+
+    // Validate URL before starting analysis
+    const validated = parseAuctionUrl(url.trim());
+    if (!validated) {
+      setError("Paste a valid Copart or IAA listing URL.");
+      return;
+    }
+
     const isFresh = searchParams.get("fresh") === "true";
 
     // Client-side cache check — skip API entirely if we have this URL cached locally
@@ -109,7 +118,7 @@ export function HomeForm() {
         <input
           type="text"
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={(e) => { setUrl(e.target.value); setError(null); }}
           onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
           placeholder="Paste IAA or Copart listing URL..."
           autoFocus

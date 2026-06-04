@@ -2,7 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getAllAnalyses, deleteAnalysis, clearAllAnalyses, clearStaleAnalyses, CURRENT_PROMPT_VERSION } from "@/lib/storage";
+import { getAllAnalyses, deleteAnalysis, clearAllAnalyses, clearStaleAnalyses, saveAnalysis, CURRENT_PROMPT_VERSION } from "@/lib/storage";
+import { useAuth } from "@/components/auth/auth-provider";
+import { createBrowserClient } from "@/lib/auth";
 
 interface AnalysisEntry {
   id: string;
@@ -37,33 +39,71 @@ function timeAgo(dateStr: string): string {
 
 export default function AnalysesPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [entries, setEntries] = useState<AnalysisEntry[]>([]);
   const [search, setSearch] = useState("");
 
-  function load() {
-    const all = getAllAnalyses();
-    setEntries(
-      all.map((entry) => {
-        const a = entry.analysis.analysis;
-        return {
-          id: entry.analysis.id,
-          vehicle: `${a.vehicle.year} ${a.vehicle.make} ${a.vehicle.model}${a.vehicle.trim ? ` ${a.vehicle.trim}` : ""}`,
-          verdict: a.verdict,
-          profit: a.financials.scenarios?.expected?.profit ?? a.financials.profit.low,
-          purchase: a.financials.purchase,
-          allIn: a.financials.allIn.low,
-          sellAt: a.financials.salePrice.low,
-          platform: entry.analysis.listing.platform,
-          mileage: entry.analysis.listing.mileage,
-          promptVersion: entry.promptVersion,
-          createdAt: entry.createdAt,
-          thumbnail: entry.analysis.listing.imageUrls[0] || null,
-        };
-      })
-    );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function mapRaw(analysis: any, promptVersion: number, createdAt: string): AnalysisEntry | null {
+    try {
+      const a = analysis.analysis;
+      return {
+        id: analysis.id,
+        vehicle: `${a.vehicle.year} ${a.vehicle.make} ${a.vehicle.model}${a.vehicle.trim ? ` ${a.vehicle.trim}` : ""}`,
+        verdict: a.verdict,
+        profit: a.financials.scenarios?.expected?.profit ?? a.financials.profit.low,
+        purchase: a.financials.purchase,
+        allIn: a.financials.allIn.low,
+        sellAt: a.financials.salePrice.low,
+        platform: analysis.listing.platform,
+        mileage: analysis.listing.mileage,
+        promptVersion,
+        createdAt,
+        thumbnail: analysis.listing.imageUrls?.[0] || null,
+      };
+    } catch {
+      return null;
+    }
   }
 
-  useEffect(() => { load(); }, []);
+  function loadLocal() {
+    const all = getAllAnalyses();
+    return all.map((entry) => mapRaw(entry.analysis, entry.promptVersion, entry.createdAt)).filter((e): e is AnalysisEntry => e !== null);
+  }
+
+  useEffect(() => {
+    if (user) {
+      // Logged in — always load from Supabase (persistent across devices)
+      const supabase = createBrowserClient();
+      supabase
+        .from("saved_analyses")
+        .select("id, listing_data, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .then(({ data }) => {
+          if (!data || data.length === 0) {
+            // Fallback to localStorage if Supabase has nothing
+            setEntries(loadLocal());
+            return;
+          }
+          const cloudEntries: AnalysisEntry[] = [];
+          for (const row of data) {
+            try {
+              const analysis = row.listing_data;
+              if (!analysis?.analysis || !analysis?.listing) continue;
+              const mapped = mapRaw(analysis, CURRENT_PROMPT_VERSION, row.created_at);
+              if (mapped) cloudEntries.push(mapped);
+            } catch {
+              // skip malformed
+            }
+          }
+          setEntries(cloudEntries);
+        });
+    } else {
+      // Not logged in — localStorage only
+      setEntries(loadLocal());
+    }
+  }, [user]);
 
   const filtered = search
     ? entries.filter((e) => e.vehicle.toLowerCase().includes(search.toLowerCase()))
@@ -84,7 +124,7 @@ export default function AnalysesPage() {
         <div className="flex items-center gap-3">
           {staleCount > 0 && (
             <button
-              onClick={() => { clearStaleAnalyses(); load(); }}
+              onClick={() => { clearStaleAnalyses(); setEntries(loadLocal()); }}
               className="text-xs text-yellow-400/60 hover:text-yellow-400 transition-colors"
             >
               Clear {staleCount} outdated
@@ -196,7 +236,7 @@ export default function AnalysesPage() {
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteAnalysis(entry.id);
-                      load();
+                      setEntries(loadLocal());
                     }}
                     className="opacity-0 group-hover:opacity-100 text-[#27272a] hover:text-red-400 transition-all text-sm"
                   >

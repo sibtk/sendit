@@ -16,6 +16,30 @@ export function parseAuctionUrl(url: string): ParsedUrl | null {
     return { platform: "copart", lotNumber: copartMatch[1] };
   }
 
+  // Copart: copart.com/vehicleDetail/48876976 (alternate format)
+  const copartAltMatch = trimmed.match(
+    /copart\.com\/vehicleDetail\/(\d+)/i
+  );
+  if (copartAltMatch) {
+    return { platform: "copart", lotNumber: copartAltMatch[1] };
+  }
+
+  // Copart: mobile share links — copart.com/member/lotDetail/48876976
+  const copartMemberMatch = trimmed.match(
+    /copart\.com\/member\/lotDetail\/(\d+)/i
+  );
+  if (copartMemberMatch) {
+    return { platform: "copart", lotNumber: copartMemberMatch[1] };
+  }
+
+  // Copart: any copart.com URL with a lot number in it
+  const copartAnyMatch = trimmed.match(
+    /copart\.com\/[^?]*?(\d{7,9})/i
+  );
+  if (copartAnyMatch) {
+    return { platform: "copart", lotNumber: copartAnyMatch[1] };
+  }
+
   // IAA: iaai.com/VehicleDetail/44365188~US or mappproxy.iaai.com/deeplink/VehicleDetail/44365188~US
   const iaaMatch = trimmed.match(
     /iaai\.com\/(?:deeplink\/)?VehicleDetail\/(\d+)/i
@@ -46,14 +70,6 @@ export function parseAuctionUrl(url: string): ParsedUrl | null {
   );
   if (iaaAnyMatch) {
     return { platform: "iaa", lotNumber: iaaAnyMatch[1] };
-  }
-
-  // Copart: copart.com/vehicleDetail/48876976 (alternate format)
-  const copartAltMatch = trimmed.match(
-    /copart\.com\/vehicleDetail\/(\d+)/i
-  );
-  if (copartAltMatch) {
-    return { platform: "copart", lotNumber: copartAltMatch[1] };
   }
 
   return null;
