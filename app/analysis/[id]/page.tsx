@@ -20,6 +20,7 @@ export default function AnalysisPage() {
   const [stale, setStale] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -119,16 +120,22 @@ export default function AnalysisPage() {
           </button>
           {isOwner && analysis && <WatchButton analysisId={id} analysis={analysis} />}
           <button
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              const btn = document.activeElement as HTMLButtonElement;
-              const orig = btn.textContent;
-              btn.textContent = "Copied!";
-              setTimeout(() => { btn.textContent = orig; }, 1500);
+            onClick={async () => {
+              try {
+                if (navigator.share) {
+                  await navigator.share({ url: window.location.href });
+                } else {
+                  await navigator.clipboard.writeText(window.location.href);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }
+              } catch {
+                // user canceled share sheet
+              }
             }}
             className="rounded-md sm:rounded-lg border border-white/[0.08] px-2 sm:px-3.5 py-1 sm:py-1.5 text-[10px] sm:text-[12px] text-white/40 hover:text-white/60 transition-all"
           >
-            Share
+            {copied ? "Copied!" : "Share"}
           </button>
           {/* Overflow menu for View Listing + Re-analyze */}
           {(analysis?.listing?.url || isOwner) && (
