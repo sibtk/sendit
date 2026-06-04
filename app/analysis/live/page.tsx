@@ -125,7 +125,8 @@ function LiveAnalysis() {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           if (res.status === 429 || data.rateLimited) {
-            router.replace("/upgrade");
+            const savedRef = typeof window !== "undefined" ? localStorage.getItem("sendit_ref") : null;
+            router.replace(savedRef ? `/upgrade?ref=${savedRef}` : "/upgrade");
             return;
           }
           setError(data.error || `Analysis failed (${res.status})`);
@@ -208,7 +209,17 @@ function LiveAnalysis() {
     }
 
     startStream();
-    return () => controller.abort();
+
+    // Timeout — if analysis takes longer than 50s, show traffic message
+    const timeout = setTimeout(() => {
+      if (phase === "progress") {
+        controller.abort();
+        setError("Connection lost");
+        setPhase("error");
+      }
+    }, 50000);
+
+    return () => { controller.abort(); clearTimeout(timeout); };
   }, [searchParams, router]);
 
   if (phase === "progress") {
@@ -216,16 +227,34 @@ function LiveAnalysis() {
   }
 
   if (phase === "error") {
+    const isTraffic = error?.includes("timeout") || error?.includes("503") || error?.includes("overloaded") || error?.includes("Connection lost");
     return (
       <div className="mx-auto max-w-6xl px-5 py-16 text-center">
-        <div className="rounded-xl border border-red-500/20 bg-red-500/[0.06] px-6 py-8 max-w-md mx-auto">
-          <h2 className="text-lg font-bold text-[#e4e4e7] mb-2">Analysis failed</h2>
-          <p className="text-[13px] text-red-400 mb-6">{error}</p>
+        <div className={`rounded-xl border px-6 py-8 max-w-md mx-auto ${isTraffic ? "border-amber-500/20 bg-amber-500/[0.06]" : "border-red-500/20 bg-red-500/[0.06]"}`}>
+          <h2 className="text-lg font-bold text-[#e4e4e7] mb-2">
+            {isTraffic ? "Heavy traffic right now" : "Analysis failed"}
+          </h2>
+          <p className="text-[13px] text-white/40 mb-6">
+            {isTraffic
+              ? "We're experiencing a lot of demand. Give it a minute and try again — your scan will go through."
+              : error}
+          </p>
           <button
-            onClick={() => router.push("/")}
+            onClick={() => {
+              const url = searchParams.get("url");
+              if (url) {
+                setPhase("progress");
+                setProgress(10);
+                setProgressLabel("Retrying...");
+                setError(null);
+                router.replace(`/analysis/live?url=${encodeURIComponent(url)}&fresh=true`);
+              } else {
+                router.push("/");
+              }
+            }}
             className="rounded-lg bg-[#7dd3fc] px-5 py-2.5 text-[13px] font-semibold text-[#0a0a0b] hover:bg-[#a5e4ff] transition-all"
           >
-            Try again
+            {isTraffic ? "Retry" : "Try again"}
           </button>
         </div>
       </div>

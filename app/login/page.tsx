@@ -9,6 +9,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signIn, signUp } = useAuth();
+  const ref = searchParams.get("ref") || (typeof window !== "undefined" ? localStorage.getItem("sendit_ref") : null);
   const [mode, setMode] = useState<"signin" | "signup">(
     searchParams.get("mode") === "signup" ? "signup" : "signin"
   );
@@ -28,11 +29,27 @@ function LoginContent() {
 
     try {
       if (mode === "signup") {
-        await signUp(email, password);
-        setCheckEmail(true);
+        try {
+          await signUp(email, password);
+          setCheckEmail(true);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "";
+          // If account already exists, try signing them in instead
+          if (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("exists") || msg.toLowerCase().includes("registered")) {
+            try {
+              await signIn(email, password);
+              router.push(ref ? `/pricing?ref=${ref}` : "/");
+            } catch {
+              setError("Account already exists. Check your password and try signing in.");
+              setMode("signin");
+            }
+          } else {
+            throw err;
+          }
+        }
       } else {
         await signIn(email, password);
-        router.push("/");
+        router.push(ref ? `/pricing?ref=${ref}` : "/");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

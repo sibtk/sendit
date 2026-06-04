@@ -15,17 +15,20 @@ function PricingContent() {
 
   const success = searchParams.get("success") === "true";
   const canceled = searchParams.get("canceled") === "true";
-  const ref = searchParams.get("ref");
+  const ref = searchParams.get("ref") || (typeof window !== "undefined" ? localStorage.getItem("sendit_ref") : null);
 
-  // Track affiliate click
+  // Track affiliate click + persist ref
   useEffect(() => {
-    if (ref && !clickTracked.current) {
-      clickTracked.current = true;
-      fetch("/api/affiliate/click", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ref }),
-      }).catch(() => {});
+    if (ref) {
+      localStorage.setItem("sendit_ref", ref);
+      if (!clickTracked.current) {
+        clickTracked.current = true;
+        fetch("/api/affiliate/click", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ref }),
+        }).catch(() => {});
+      }
     }
   }, [ref]);
 
@@ -38,7 +41,8 @@ function PricingContent() {
 
   async function handleCheckout(priceId: string) {
     if (!user) {
-      router.push("/login?mode=signup");
+      const savedRef = ref || (typeof window !== "undefined" ? localStorage.getItem("sendit_ref") : null);
+      router.push(savedRef ? `/login?mode=signup&ref=${savedRef}` : "/login?mode=signup");
       return;
     }
 
@@ -66,10 +70,12 @@ function PricingContent() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        console.error("No checkout URL:", data.error);
+        setLoading(null);
+        alert(data.error || "Checkout failed. Please try again.");
       }
-    } catch (e) {
-      console.error("Checkout failed:", e);
+    } catch {
+      setLoading(null);
+      alert("Checkout failed. Please try again.");
     }
     setLoading(null);
   }

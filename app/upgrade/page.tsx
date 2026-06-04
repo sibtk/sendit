@@ -1,11 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { Suspense } from "react";
 
-export default function UpgradePage() {
+function UpgradeContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
+  const ref = searchParams.get("ref") || (typeof window !== "undefined" ? localStorage.getItem("sendit_ref") : null);
+  const pricingUrl = ref ? `/pricing?ref=${ref}` : "/pricing";
+  const hasDiscount = !!ref;
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-12">
@@ -65,12 +70,16 @@ export default function UpgradePage() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-[16px] font-bold text-[#fafafa] mb-1">
-              Pro — <span className="mono">$5</span><span className="text-[#52525b] text-[13px] font-normal"> first month</span>
+              Pro — {hasDiscount ? (
+                <><span className="mono">$22</span><span className="text-[#52525b] text-[13px] font-normal line-through ml-1">$30</span><span className="text-[#52525b] text-[13px] font-normal"> first month</span></>
+              ) : (
+                <><span className="mono">$30</span><span className="text-[#52525b] text-[13px] font-normal">/mo</span></>
+              )}
             </h3>
-            <p className="text-[13px] text-[#52525b]">50 scans/month. Then $30/mo. Cancel anytime.</p>
+            <p className="text-[13px] text-[#52525b]">50 scans/month. Cancel anytime.</p>
           </div>
           <button
-            onClick={() => router.push("/pricing")}
+            onClick={() => router.push(pricingUrl)}
             className="rounded-xl bg-[#7dd3fc] px-6 py-2.5 text-[14px] font-semibold text-[#0a0a0b] hover:bg-[#a5e4ff] transition-all shrink-0"
           >
             Get Pro
@@ -83,12 +92,16 @@ export default function UpgradePage() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-[16px] font-bold text-[#fafafa] mb-1">
-              Dealer — <span className="mono">$120</span><span className="text-[#52525b] text-[13px] font-normal">/mo</span>
+              Dealer — {hasDiscount ? (
+                <><span className="mono">$90</span><span className="text-[#52525b] text-[13px] font-normal line-through ml-1">$120</span><span className="text-[#52525b] text-[13px] font-normal"> first month</span></>
+              ) : (
+                <><span className="mono">$120</span><span className="text-[#52525b] text-[13px] font-normal">/mo</span></>
+              )}
             </h3>
             <p className="text-[13px] text-[#52525b]">Unlimited scans. Early access to features + priority support.</p>
           </div>
           <button
-            onClick={() => router.push("/pricing")}
+            onClick={() => router.push(pricingUrl)}
             className="rounded-xl border border-white/[0.1] bg-white/[0.05] px-6 py-2.5 text-[14px] font-semibold text-[#fafafa] hover:bg-white/[0.08] transition-all shrink-0"
           >
             Get Dealer
@@ -104,8 +117,8 @@ export default function UpgradePage() {
             <div className="text-[11px] text-[#3f3f46] mt-1">Per scan</div>
           </div>
           <div>
-            <div className="mono text-2xl font-bold text-[#e4e4e7]">$0.38</div>
-            <div className="text-[11px] text-[#3f3f46] mt-1">Per scan first month</div>
+            <div className="mono text-2xl font-bold text-[#e4e4e7]">$0.60</div>
+            <div className="text-[11px] text-[#3f3f46] mt-1">Per scan on Pro</div>
           </div>
           <div>
             <div className="mono text-2xl font-bold text-[#f87171]">$5K+</div>
@@ -128,5 +141,13 @@ export default function UpgradePage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function UpgradePage() {
+  return (
+    <Suspense>
+      <UpgradeContent />
+    </Suspense>
   );
 }

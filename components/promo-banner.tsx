@@ -9,6 +9,11 @@ export function PromoBanner() {
   const isPaid = tier === "pro" || tier === "dealer";
   const ref = searchParams.get("ref");
 
+  // Persist ref to localStorage so it survives across pages
+  if (ref && typeof window !== "undefined") {
+    localStorage.setItem("sendit_ref", ref);
+  }
+
   if (isPaid) return null;
 
   return (

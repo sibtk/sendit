@@ -469,7 +469,12 @@ export async function POST(request: NextRequest) {
             send("complete", fullAnalysis);
             controller.close();
           } catch (error) {
-            send("error", { error: error instanceof Error ? error.message : "Analysis failed" });
+            console.error("Stream analysis error:", error);
+            const msg = error instanceof Error ? error.message : "";
+            const userMsg = msg.includes("timeout") || msg.includes("503") || msg.includes("overloaded")
+              ? "We're experiencing heavy traffic. Please try again in a minute."
+              : "Something went wrong analyzing this listing. If this keeps happening, email hello@senditscan.com and we'll look into it.";
+            send("error", { error: userMsg });
             controller.close();
           }
         },
@@ -974,12 +979,10 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("Analysis failed:", error);
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Analysis failed",
-      },
-      { status: 500 }
-    );
+    const msg = error instanceof Error ? error.message : "";
+    const userMsg = msg.includes("timeout") || msg.includes("503") || msg.includes("overloaded")
+      ? "We're experiencing heavy traffic. Please try again in a minute."
+      : "Something went wrong analyzing this listing. If this keeps happening, email hello@senditscan.com and we'll look into it.";
+    return NextResponse.json({ error: userMsg }, { status: 500 });
   }
 }
