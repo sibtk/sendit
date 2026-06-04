@@ -82,8 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loading]);
 
   async function handleSignUp(email: string, password: string) {
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
+    // Supabase returns identities: [] when the user already exists (no error thrown)
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      throw new Error("already_exists");
+    }
   }
 
   async function handleSignIn(email: string, password: string) {

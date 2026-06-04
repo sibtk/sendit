@@ -36,7 +36,7 @@ function LoginContent() {
         } catch (err) {
           const msg = err instanceof Error ? err.message : "";
           // If account already exists, try signing them in instead
-          if (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("exists") || msg.toLowerCase().includes("registered")) {
+          if (msg === "already_exists" || msg.toLowerCase().includes("already") || msg.toLowerCase().includes("exists") || msg.toLowerCase().includes("registered")) {
             try {
               await signIn(email, password);
               router.push(ref ? `/pricing?ref=${ref}` : "/");
