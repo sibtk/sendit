@@ -2,13 +2,14 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { getRef } from "@/lib/referral";
 import { Suspense } from "react";
 
 function UpgradeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const ref = searchParams.get("ref") || (typeof window !== "undefined" ? localStorage.getItem("sendit_ref") : null);
+  const ref = searchParams.get("ref") || getRef();
   const pricingUrl = ref ? `/pricing?ref=${ref}` : "/pricing";
   const hasDiscount = !!ref;
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createBrowserClient } from "@/lib/auth";
+import { saveRef, getRef } from "@/lib/referral";
 import { Suspense } from "react";
 
 function PricingContent() {
@@ -15,12 +16,13 @@ function PricingContent() {
 
   const success = searchParams.get("success") === "true";
   const canceled = searchParams.get("canceled") === "true";
-  const ref = searchParams.get("ref") || (typeof window !== "undefined" ? localStorage.getItem("sendit_ref") : null);
+  const urlRef = searchParams.get("ref");
+  if (urlRef) saveRef(urlRef);
+  const ref = urlRef || getRef();
 
-  // Track affiliate click + persist ref
+  // Track affiliate click
   useEffect(() => {
     if (ref) {
-      localStorage.setItem("sendit_ref", ref);
       if (!clickTracked.current) {
         clickTracked.current = true;
         fetch("/api/affiliate/click", {
@@ -41,8 +43,7 @@ function PricingContent() {
 
   async function handleCheckout(priceId: string) {
     if (!user) {
-      const savedRef = ref || (typeof window !== "undefined" ? localStorage.getItem("sendit_ref") : null);
-      router.push(savedRef ? `/login?mode=signup&ref=${savedRef}` : "/login?mode=signup");
+      router.push(ref ? `/login?mode=signup&ref=${ref}` : "/login?mode=signup");
       return;
     }
 

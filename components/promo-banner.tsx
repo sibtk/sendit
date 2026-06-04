@@ -2,17 +2,16 @@
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { useSearchParams } from "next/navigation";
+import { saveRef, getRef } from "@/lib/referral";
 
 export function PromoBanner() {
   const { tier } = useAuth();
   const searchParams = useSearchParams();
   const isPaid = tier === "pro" || tier === "dealer";
-  const ref = searchParams.get("ref");
+  const urlRef = searchParams.get("ref");
 
-  // Persist ref to localStorage so it survives across pages
-  if (ref && typeof window !== "undefined") {
-    localStorage.setItem("sendit_ref", ref);
-  }
+  if (urlRef) saveRef(urlRef);
+  const ref = urlRef || getRef();
 
   if (isPaid) return null;
 

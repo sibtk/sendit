@@ -125,7 +125,8 @@ function LiveAnalysis() {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           if (res.status === 429 || data.rateLimited) {
-            const savedRef = typeof window !== "undefined" ? localStorage.getItem("sendit_ref") : null;
+            const { getRef } = await import("@/lib/referral");
+            const savedRef = getRef();
             router.replace(savedRef ? `/upgrade?ref=${savedRef}` : "/upgrade");
             return;
           }
