@@ -468,7 +468,7 @@ export default function AdminPage() {
               </div>
               {newAffiliate.ref && (
                 <div className="text-[11px] text-white/20 mb-3 mono">
-                  Link: senditscan.com/pricing?ref={newAffiliate.ref}
+                  Link: senditscan.com?ref={newAffiliate.ref}
                 </div>
               )}
               <button
@@ -524,7 +524,7 @@ export default function AdminPage() {
                         <td className="px-5 py-3 text-right mono text-[#7dd3fc]">${fmt(a.payout)}/mo</td>
                         <td className="px-5 py-3 text-right">
                           <button
-                            onClick={() => navigator.clipboard.writeText(`https://senditscan.com/pricing?ref=${a.ref}`)}
+                            onClick={() => navigator.clipboard.writeText(`https://senditscan.com?ref=${a.ref}`)}
                             className="text-[11px] text-[#7dd3fc]/60 hover:text-[#7dd3fc] transition-colors"
                           >
                             Copy

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sendit scan - Affiliate Partnership Agreement</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #111;
+    color: #e0e0e0;
+    line-height: 1.4;
+    margin: 0;
+    padding: 0;
+  }
+
+  .page {
+    width: 8.5in;
+    min-height: 11in;
+    max-height: 11in;
+    margin: 20px auto;
+    background: #1a1a1a;
+    padding: 44px 48px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .doc-number {
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    letter-spacing: 0.5px;
+    text-align: right;
+    margin-bottom: 12px;
+  }
+
+  .title h1 {
+    font-size: 44px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .title .subtitle {
+    font-size: 14px;
+    font-weight: 500;
+    color: #7dd3fc;
+    margin-bottom: 24px;
+  }
+
+  .parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 22px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  .party-label {
+    font-size: 9px;
+    font-weight: 600;
+    color: #666;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .party-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .party-detail {
+    font-size: 11px;
+    color: #999;
+    line-height: 1.6;
+  }
+
+  .dates { text-align: right; }
+
+  .date-label {
+    font-size: 9px;
+    font-weight: 600;
+    color: #666;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .date-value {
+    font-size: 13px;
+    color: #fff;
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2a2a2a;
+    font-size: 9px;
+    font-weight: 600;
+    color: #666;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .table-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #2a2a2a;
+    align-items: start;
+  }
+
+  .item-desc {
+    font-size: 11.5px;
+    color: #ccc;
+    line-height: 1.55;
+  }
+
+  .item-desc strong {
+    color: #fff;
+    display: block;
+    margin-bottom: 2px;
+    font-size: 12px;
+  }
+
+  .item-value {
+    font-size: 11px;
+    color: #ccc;
+    text-align: right;
+  }
+
+  .item-highlight {
+    font-weight: 600;
+    color: #7dd3fc;
+    text-align: right;
+    font-size: 11px;
+  }
+
+  .summary {
+    padding: 16px 0;
+    margin-bottom: 18px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 40px;
+    padding: 4px 0;
+    font-size: 11px;
+    color: #999;
+  }
+
+  .summary-row.final {
+    font-size: 14px;
+    font-weight: 700;
+    color: #7dd3fc;
+    border-top: 1px solid #2a2a2a;
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+
+  .summary-label { min-width: 140px; }
+  .summary-value { min-width: 110px; }
+
+  .section-title {
+    font-size: 9px;
+    font-weight: 600;
+    color: #666;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    margin-top: 8px;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 3px 20px;
+    font-size: 11px;
+  }
+
+  .info-label {
+    color: #666;
+    font-weight: 500;
+  }
+
+  .info-value {
+    color: #ccc;
+  }
+
+  .info-value.mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #7dd3fc;
+  }
+
+  /* PAGE 2 */
+
+  .tc-title {
+    font-size: 9px;
+    font-weight: 600;
+    color: #666;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .tc-block {
+    margin-bottom: 12px;
+  }
+
+  .tc-block h3 {
+    font-size: 11px;
+    font-weight: 600;
+    color: #ddd;
+    margin-bottom: 3px;
+  }
+
+  .tc-block p {
+    font-size: 10px;
+    color: #888;
+    line-height: 1.6;
+    margin-bottom: 3px;
+  }
+
+  .tc-block strong {
+    color: #aaa;
+  }
+
+  .sig-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #2a2a2a;
+  }
+
+  .sig-line {
+    border-top: 1px solid #444;
+    padding-top: 10px;
+    margin-top: 36px;
+  }
+
+  .sig-label {
+    font-size: 10px;
+    color: #666;
+    font-weight: 500;
+  }
+
+  .sig-name {
+    font-size: 11px;
+    color: #ccc;
+    margin-top: 2px;
+  }
+
+  .sig-date {
+    font-size: 10px;
+    color: #666;
+    margin-top: 4px;
+  }
+
+  .notes {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #2a2a2a;
+  }
+
+  .notes p {
+    font-size: 10px;
+    color: #666;
+    line-height: 1.5;
+  }
+
+  @page {
+    size: letter;
+    margin: 0;
+  }
+
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { background: #111; padding: 0; margin: 0; }
+    .page { margin: 0 auto; border-radius: 0; min-height: 11in; max-height: 11in; overflow: hidden; break-after: page; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== PAGE 1 ==================== -->
+<div class="page">
+
+  <div class="doc-number">SS-AFF-2026-001</div>
+
+  <div class="title">
+    <h1>AFFILIATE AGREEMENT</h1>
+    <div class="subtitle">sendit scan &times; V Tuned Garage</div>
+  </div>
+
+  <div class="parties">
+    <div>
+      <div class="party-label">Company</div>
+      <div class="party-name">sendit scan</div>
+      <div class="party-detail">
+        Sibtain Khan<br>
+        hello@senditscan.com<br>
+        senditscan.com
+      </div>
+    </div>
+    <div>
+      <div class="party-label">Affiliate</div>
+      <div class="party-name">V Tuned Garage</div>
+      <div class="party-detail">
+        Veniamin Livarchuk<br>
+        vtunedgarage@gmail.com<br>
+        YouTube: @Vtuned
+      </div>
+    </div>
+    <div class="dates">
+      <div class="date-label">Issued</div>
+      <div class="date-value">June 5, 2026</div>
+      <div class="date-label">Effective</div>
+      <div class="date-value">Upon Acceptance</div>
+    </div>
+  </div>
+
+  <div class="table-header">
+    <div>Description</div>
+    <div style="text-align:right;">Details</div>
+    <div style="text-align:right;">Value</div>
+  </div>
+
+  <div class="table-row">
+    <div class="item-desc">
+      <strong>Recurring Commission</strong>
+      Percentage of all payments from referred subscribers, for as long as those users maintain an active paid subscription. Calculated on net revenue after Stripe processing fees.
+    </div>
+    <div class="item-value">Recurring</div>
+    <div class="item-highlight">20%</div>
+  </div>
+
+  <div class="table-row">
+    <div class="item-desc">
+      <strong>Audience Discount</strong>
+      Referred users receive a first-month discount on any paid plan (Pro $30/mo or Dealer $120/mo). Applied automatically via unique referral link.
+    </div>
+    <div class="item-value">First month</div>
+    <div class="item-highlight">25% off</div>
+  </div>
+
+  <div class="table-row">
+    <div class="item-desc">
+      <strong>Referral Attribution Window</strong>
+      A referral is credited when a user clicks the affiliate link and subscribes within the attribution window. Timer resets on each click.
+    </div>
+    <div class="item-value">Per click</div>
+    <div class="item-highlight">14 days</div>
+  </div>
+
+  <div class="table-row">
+    <div class="item-desc">
+      <strong>Complimentary Pro Account</strong>
+      Full Pro access for the duration of this agreement at no cost. Deactivated upon termination.
+    </div>
+    <div class="item-value">Ongoing</div>
+    <div class="item-highlight">Free</div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-row">
+      <div class="summary-label">Commission Rate</div>
+      <div class="summary-value">20% recurring</div>
+    </div>
+    <div class="summary-row">
+      <div class="summary-label">Cookie Window</div>
+      <div class="summary-value">14 days</div>
+    </div>
+    <div class="summary-row">
+      <div class="summary-label">Payout Schedule</div>
+      <div class="summary-value">Monthly</div>
+    </div>
+    <div class="summary-row">
+      <div class="summary-label">Minimum Payout</div>
+      <div class="summary-value">$50.00</div>
+    </div>
+    <div class="summary-row final">
+      <div class="summary-label">Exclusivity</div>
+      <div class="summary-value">Non-exclusive</div>
+    </div>
+  </div>
+
+  <div class="section-title">Referral Link &amp; Payouts</div>
+  <div class="info-grid">
+    <div class="info-label">Referral Link:</div>
+    <div class="info-value mono">senditscan.com?ref=vtuned</div>
+    <div class="info-label">Payout Method:</div>
+    <div class="info-value">PayPal or Zelle</div>
+    <div class="info-label">Payout Timing:</div>
+    <div class="info-value">Within 15 days of month end</div>
+    <div class="info-label">Dashboard:</div>
+    <div class="info-value">Real-time stats provided by Company</div>
+  </div>
+
+</div>
+
+<!-- ==================== PAGE 2 ==================== -->
+<div class="page">
+
+  <div class="tc-title">Terms &amp; Conditions</div>
+
+  <div class="tc-block">
+    <h3>1. Referral Tracking</h3>
+    <p>Referrals are tracked via a unique URL parameter (<strong>?ref=vtuned</strong>). Attribution is stored client-side for <strong>14 days</strong> from the most recent click. If a user clicks the referral link multiple times, the window resets. Each referred user can only be attributed to one affiliate.</p>
+  </div>
+
+  <div class="tc-block">
+    <h3>2. Commission</h3>
+    <p>The Affiliate earns <strong>20% recurring commission</strong> on all payments made by referred users for as long as those users maintain an active paid subscription. Commission is calculated on the net amount received by the Company after payment processing fees (Stripe: 2.9% + $0.30 per transaction). Commission applies to all current and future subscription tiers.</p>
+  </div>
+
+  <div class="tc-block">
+    <h3>3. Refunds &amp; Chargebacks</h3>
+    <p>If a referred user requests a refund or initiates a chargeback within <strong>30 days</strong> of their payment, the commission for that transaction will be deducted from the Affiliate's next payout. Commissions are only earned on successfully completed, non-refunded payments.</p>
+  </div>
+
+  <div class="tc-block">
+    <h3>4. Payouts</h3>
+    <p>Commissions are calculated monthly and paid within <strong>15 days</strong> of the end of each calendar month via PayPal or Zelle. Minimum payout threshold is <strong>$50</strong>. Balances below $50 roll over to the following month. The Company will provide real-time referral stats including clicks, signups, conversions, and estimated commissions.</p>
+  </div>
+
+  <div class="tc-block">
+    <h3>5. Promotion Guidelines</h3>
+    <p>The Affiliate may promote the Service through YouTube videos, social media, blog posts, or other content at their discretion. There is no minimum number of promotions required. The Affiliate agrees not to make false or misleading claims about the Service and agrees to disclose the affiliate relationship in accordance with <strong>FTC guidelines</strong> (e.g., "This video contains an affiliate link" or equivalent disclosure).</p>
+  </div>
+
+  <div class="tc-block">
+    <h3>6. Non-Exclusivity</h3>
+    <p>This agreement is non-exclusive. The Affiliate is free to promote other products and services, including competing products. The Company is free to partner with other affiliates and creators.</p>
+  </div>
+
+  <div class="tc-block">
+    <h3>7. Intellectual Property</h3>
+    <p>The Affiliate may use the Company's name, logo, and screenshots of the Service for promotional purposes. The Company may reference the Affiliate's name and channel in its own marketing materials.</p>
+  </div>
+
+  <div class="tc-block">
+    <h3>8. Termination</h3>
+    <p><strong>BY AFFILIATE:</strong> The Affiliate may terminate this agreement at any time with <strong>30 days written notice</strong> via email, for any reason or no reason.</p>
+    <p><strong>BY COMPANY:</strong> The Company may only terminate this agreement for cause, including but not limited to: (a) the Affiliate makes materially false or misleading claims about the Service; (b) the Affiliate engages in fraudulent referral activity; (c) the Affiliate violates FTC disclosure requirements after being notified; (d) the Service is permanently discontinued. The Company must provide <strong>written notice specifying the reason</strong> for termination and allow <strong>30 days to cure</strong> the issue before termination takes effect (except in cases of fraud, which are effective immediately).</p>
+    <p><strong>POST-TERMINATION COMMISSIONS:</strong> Regardless of which party terminates or the reason, the Affiliate will continue to earn commissions on all existing referred users for <strong>6 months</strong> following the termination date. After the 6-month post-termination period, commission obligations cease. The complimentary Pro account will be deactivated 30 days after termination.</p>
+  </div>
+
+  <div class="tc-block">
+    <h3>9. Liability</h3>
+    <p>The Company is not liable for any claims arising from the Affiliate's promotional content. The Affiliate is not liable for any issues with the Service, including downtime, bugs, or inaccurate analyses. The Company's total liability shall not exceed the total commissions paid to the Affiliate in the 3 months preceding any claim.</p>
+  </div>
+
+  <div class="tc-block">
+    <h3>10. Modifications &amp; Governing Law</h3>
+    <p>This agreement may be modified with mutual written consent via email. Changes to commission rates require 30 days notice to the Affiliate. This agreement is governed by the laws of the <strong>State of Texas</strong>.</p>
+  </div>
+
+  <div class="sig-row">
+    <div>
+      <div class="sig-line">
+        <div class="sig-label">Company &mdash; sendit scan</div>
+        <div class="sig-name">Sibtain Khan</div>
+        <div class="sig-date">Date: _______________</div>
+      </div>
+    </div>
+    <div>
+      <div class="sig-line">
+        <div class="sig-label">Affiliate &mdash; V Tuned Garage</div>
+        <div class="sig-name">Veniamin Livarchuk</div>
+        <div class="sig-date">Date: _______________</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <p>This agreement reflects a partnership built on mutual value. The Affiliate promotes a tool they genuinely use, and the Company provides fair, transparent, and recurring compensation. Both parties win when the product serves the community well.</p>
+  </div>
+
+</div>
+
+</body>
+</html>
