@@ -1,8 +1,9 @@
 const REF_KEY = "sendit_ref";
 const REF_EXPIRES_KEY = "sendit_ref_expires";
-const REF_DURATION_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
+const REF_DURATION_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 
 export function saveRef(ref: string) {
+  if (typeof window === "undefined") return;
   localStorage.setItem(REF_KEY, ref);
   localStorage.setItem(REF_EXPIRES_KEY, String(Date.now() + REF_DURATION_MS));
 }
@@ -22,6 +23,7 @@ export function getRef(): string | null {
 }
 
 export function clearRef() {
+  if (typeof window === "undefined") return;
   localStorage.removeItem(REF_KEY);
   localStorage.removeItem(REF_EXPIRES_KEY);
 }
