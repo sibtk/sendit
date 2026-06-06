@@ -76,6 +76,10 @@ export default function AdminPage() {
   const [affiliatesList, setAffiliatesList] = useState<Affiliate[]>([]);
   const [newAffiliate, setNewAffiliate] = useState({ ref: "", name: "", contact: "", commission_pct: 20 });
   const [showAddAffiliate, setShowAddAffiliate] = useState(false);
+  const [editingAffiliate, setEditingAffiliate] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editContact, setEditContact] = useState("");
+  const [editCommission, setEditCommission] = useState(20);
 
   // Fetch stats
   useEffect(() => {
@@ -513,8 +517,77 @@ export default function AdminPage() {
                     return (
                       <tr key={a.id} className={`border-b border-white/[0.04] ${!a.active ? "opacity-40" : ""}`}>
                         <td className="px-5 py-3">
-                          <div className="text-white/60 font-medium">{a.name}</div>
-                          <div className="text-[11px] text-white/20 mono">{a.ref} · {a.commission_pct}%</div>
+                          {editingAffiliate === a.id ? (
+                            <div className="space-y-1.5">
+                              <input
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                placeholder="Name"
+                                autoFocus
+                                className="w-full rounded border border-white/[0.12] bg-white/[0.05] px-2 py-1 text-[13px] text-white/70 focus:border-[#7dd3fc]/30 focus:outline-none"
+                              />
+                              <input
+                                type="text"
+                                value={editContact}
+                                onChange={(e) => setEditContact(e.target.value)}
+                                placeholder="Contact email/phone"
+                                className="w-full rounded border border-white/[0.12] bg-white/[0.05] px-2 py-1 text-[11px] text-white/50 focus:border-[#7dd3fc]/30 focus:outline-none"
+                              />
+                              <input
+                                type="number"
+                                value={editCommission}
+                                onChange={(e) => setEditCommission(parseInt(e.target.value) || 20)}
+                                placeholder="Commission %"
+                                className="w-20 rounded border border-white/[0.12] bg-white/[0.05] px-2 py-1 text-[11px] text-white/50 focus:border-[#7dd3fc]/30 focus:outline-none mono"
+                              />
+                              <div className="flex gap-1.5 pt-1">
+                                <button
+                                  onClick={async () => {
+                                    await fetch("/api/admin/affiliates", {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ id: a.id, name: editName.trim(), contact: editContact.trim(), commission_pct: editCommission }),
+                                    });
+                                    setEditingAffiliate(null);
+                                    fetchAffiliates();
+                                  }}
+                                  className="rounded bg-[#7dd3fc]/20 px-2.5 py-1 text-[11px] font-medium text-[#7dd3fc] hover:bg-[#7dd3fc]/30 transition-all"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => setEditingAffiliate(null)}
+                                  className="rounded border border-white/[0.06] px-2.5 py-1 text-[11px] text-white/30 hover:text-white/50 transition-all"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    await fetch("/api/admin/affiliates", {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ id: a.id, active: !a.active }),
+                                    });
+                                    setEditingAffiliate(null);
+                                    fetchAffiliates();
+                                  }}
+                                  className="rounded border border-white/[0.06] px-2.5 py-1 text-[11px] text-white/30 hover:text-red-400 transition-all ml-auto"
+                                >
+                                  {a.active ? "Deactivate" : "Reactivate"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              className="text-white/60 font-medium cursor-pointer hover:text-white/80"
+                              onClick={() => { setEditingAffiliate(a.id); setEditName(a.name); setEditContact(a.contact || ""); setEditCommission(a.commission_pct); }}
+                              title="Click to edit"
+                            >
+                              {a.name}
+                            </div>
+                          )}
+                          <div className="text-[11px] text-white/20 mono">{a.ref} · {a.commission_pct}%{a.contact ? ` · ${a.contact}` : ""}</div>
                         </td>
                         <td className="px-5 py-3 text-right mono text-white/40">{fmt(a.clicks)}</td>
                         <td className="px-5 py-3 text-right mono text-white/40">{a.signups}</td>
