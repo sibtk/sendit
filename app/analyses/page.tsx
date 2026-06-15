@@ -73,7 +73,10 @@ export default function AnalysesPage() {
 
   useEffect(() => {
     if (user) {
-      // Logged in — always load from Supabase (persistent across devices)
+      // Logged in — merge localStorage + Supabase, dedupe by ID
+      const local = loadLocal();
+      setEntries(local); // show local immediately
+
       const supabase = createBrowserClient();
       supabase
         .from("saved_analyses")
@@ -81,13 +84,8 @@ export default function AnalysesPage() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .then(({ data }) => {
-          if (!data || data.length === 0) {
-            // Fallback to localStorage if Supabase has nothing
-            setEntries(loadLocal());
-            return;
-          }
           const cloudEntries: AnalysisEntry[] = [];
-          for (const row of data) {
+          for (const row of data || []) {
             try {
               const analysis = row.listing_data;
               if (!analysis?.analysis || !analysis?.listing) continue;
@@ -97,7 +95,17 @@ export default function AnalysesPage() {
               // skip malformed
             }
           }
-          setEntries(cloudEntries);
+          // Merge: local + cloud, dedupe by ID, sort newest first
+          const allIds = new Set<string>();
+          const merged: AnalysisEntry[] = [];
+          for (const entry of [...local, ...cloudEntries]) {
+            if (!allIds.has(entry.id)) {
+              allIds.add(entry.id);
+              merged.push(entry);
+            }
+          }
+          merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setEntries(merged);
         });
     } else {
       // Not logged in — localStorage only
