@@ -198,7 +198,7 @@ CRITICAL: Check the REAR of the car carefully. Missing rear bumpers, tail light 
   });
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6-20250620",
     max_tokens: 8192,
     temperature: 0,
     system: systemPrompt,

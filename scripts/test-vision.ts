@@ -47,7 +47,7 @@ async function main() {
 
   console.log("Asking Claude (no listing context, just photos)...\n");
   const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6-20250620",
     max_tokens: 1500,
     temperature: 0,
     messages: [{ role: "user", content }],
