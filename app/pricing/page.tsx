@@ -20,17 +20,19 @@ function PricingContent() {
   if (urlRef) saveRef(urlRef);
   const ref = urlRef || getRef();
   const [refName, setRefName] = useState<string | null>(null);
+  const [refDiscount, setRefDiscount] = useState<number>(25);
 
-  const fetchRefName = useCallback(async () => {
+  const fetchRefInfo = useCallback(async () => {
     if (!ref) return;
     try {
       const res = await fetch(`/api/affiliate/info?ref=${ref}`);
       const data = await res.json();
       if (data.name) setRefName(data.name);
+      if (data.discount) setRefDiscount(data.discount);
     } catch {}
   }, [ref]);
 
-  useEffect(() => { fetchRefName(); }, [fetchRefName]);
+  useEffect(() => { fetchRefInfo(); }, [fetchRefInfo]);
 
   // Track affiliate click
   useEffect(() => {
@@ -97,8 +99,8 @@ function PricingContent() {
   const dealerPriceId = process.env.NEXT_PUBLIC_STRIPE_DEALER_PRICE_ID || "";
 
   const hasDiscount = !!ref;
-  const discountedPro = 22.5;
-  const discountedDealer = 90;
+  const discountedPro = Math.round(30 * (1 - refDiscount / 100));
+  const discountedDealer = Math.round(120 * (1 - refDiscount / 100));
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-16">
@@ -126,7 +128,7 @@ function PricingContent() {
         </p>
         {hasDiscount && (
           <div className="mt-4 inline-block rounded-full border border-green-500/20 bg-green-500/[0.06] px-4 py-1.5">
-            <span className="text-[13px] text-green-400 font-medium">25% off your first month{refName ? ` — from ${refName}` : ""}</span>
+            <span className="text-[13px] text-green-400 font-medium">{refDiscount}% off your first month{refName ? ` — from ${refName}` : ""}</span>
           </div>
         )}
       </div>

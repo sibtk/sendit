@@ -60,7 +60,7 @@ const OEM_SITES: Record<string, { name: string; url: string }> = {
 
 export interface PartShopLinks {
   ebay: string;
-  partsGeek: string;
+  rockAuto: string;
   oem: { name: string; url: string } | null;
 }
 
@@ -283,17 +283,14 @@ export function getPartLinks(
   // eBay — search within Parts & Accessories category
   const ebayUrl = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}&_sacat=6028&mkcid=1&mkrid=711-53200-19255-0&campid=5339152879&toolid=10001`;
 
-  // PartsGeek — deep link to part category if we can map it, else YMM page
-  const pgPart = getPartsGeekPart(partName);
-  const { pgMake, pgModel } = formatPgMakeModel(make, model);
-  const partsGeekUrl = pgPart
-    ? `https://www.partsgeek.com/catalog/${year}/${pgMake}/${pgModel}/${pgPart.cat}/${pgPart.slug}.html`
-    : `https://www.partsgeek.com/ymm/${year}/${pgMake}/${pgModel}.html`;
+  // RockAuto — catalog URL: /en/catalog/{make},{year},{model}
+  const raModel = model.toLowerCase().split(/\s+/)[0];
+  const rockAutoUrl = `https://www.rockauto.com/en/catalog/${make.toLowerCase()},${year},${raModel}`;
 
   // OEM — static brand link
   const makeUp = make.toUpperCase();
   const oemEntry = OEM_SITES[makeUp];
   const oem = oemEntry ? { name: oemEntry.name, url: oemEntry.url } : null;
 
-  return { ebay: ebayUrl, partsGeek: partsGeekUrl, oem };
+  return { ebay: ebayUrl, rockAuto: rockAutoUrl, oem };
 }

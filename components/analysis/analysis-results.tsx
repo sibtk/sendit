@@ -783,13 +783,13 @@ export default function AnalysisResults({
                         const links = getPartLinks(a.vehicle.year, a.vehicle.make, a.vehicle.model, part.name);
                         return (
                           <div className="flex gap-2 mt-1">
-                            <a href={links.ebay} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#52525b] hover:text-[#7dd3fc] transition-colors">eBay</a>
-                            <span className="text-[10px] text-[#27272a]">·</span>
-                            <a href={links.partsGeek} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#52525b] hover:text-[#7dd3fc] transition-colors">PartsGeek</a>
+                            <a href={links.ebay} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#7dd3fc]/60 hover:text-[#7dd3fc] transition-colors">eBay</a>
+                            <span className="text-[10px] text-[#3f3f46]">·</span>
+                            <a href={links.rockAuto} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#7dd3fc]/60 hover:text-[#7dd3fc] transition-colors">RockAuto</a>
                             {links.oem && (
                               <>
-                                <span className="text-[10px] text-[#27272a]">·</span>
-                                <a href={links.oem.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#52525b] hover:text-[#7dd3fc] transition-colors">{links.oem.name}</a>
+                                <span className="text-[10px] text-[#3f3f46]">·</span>
+                                <a href={links.oem.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#7dd3fc]/60 hover:text-[#7dd3fc] transition-colors">{links.oem.name}</a>
                               </>
                             )}
                           </div>
@@ -849,13 +849,13 @@ export default function AnalysisResults({
                             const links = getPartLinks(a.vehicle.year, a.vehicle.make, a.vehicle.model, part.name);
                             return (
                               <div className="flex gap-2 mt-1">
-                                <a href={links.ebay} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#52525b] hover:text-[#7dd3fc] transition-colors">eBay</a>
-                                <span className="text-[10px] text-[#27272a]">·</span>
-                                <a href={links.partsGeek} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#52525b] hover:text-[#7dd3fc] transition-colors">PartsGeek</a>
+                                <a href={links.ebay} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#7dd3fc]/60 hover:text-[#7dd3fc] transition-colors">eBay</a>
+                                <span className="text-[10px] text-[#3f3f46]">·</span>
+                                <a href={links.rockAuto} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#7dd3fc]/60 hover:text-[#7dd3fc] transition-colors">RockAuto</a>
                                 {links.oem && (
                                   <>
-                                    <span className="text-[10px] text-[#27272a]">·</span>
-                                    <a href={links.oem.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#52525b] hover:text-[#7dd3fc] transition-colors">{links.oem.name}</a>
+                                    <span className="text-[10px] text-[#3f3f46]">·</span>
+                                    <a href={links.oem.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#7dd3fc]/60 hover:text-[#7dd3fc] transition-colors">{links.oem.name}</a>
                                   </>
                                 )}
                               </div>
@@ -1686,8 +1686,13 @@ export default function AnalysisResults({
         )}
 
         {/* Disclaimer */}
-        <div className="xl:col-span-2 text-[10px] text-[#3f3f46] leading-relaxed mt-4 px-1">
-          Estimates are for informational purposes only and do not constitute professional appraisals or financial advice. AI damage assessment may not identify all damage — always inspect vehicles in person before purchasing. Repair costs are estimates that vary by location, shop, and parts availability. Market values are based on available data and may not reflect actual sale prices. User assumes all risk on purchase decisions. sendit scan is not affiliated with Copart, IAA, or any auction platform.
+        <div className="xl:col-span-2 rounded-lg border border-white/[0.04] bg-white/[0.01] px-4 py-3 mt-6">
+          <div className="text-[11px] text-[#52525b] leading-relaxed space-y-1.5">
+            <p className="text-[#71717a] font-medium">sendit scan can only see what the photos show.</p>
+            <p>Internal/mechanical damage, hidden frame damage, flood damage behind panels, and issues not visible in listing photos won't be caught. This is a starting point — not a replacement for an in-person inspection. Always do your own due diligence before bidding.</p>
+            <p>Repair costs are estimates based on typical shop rates and parts availability. Your actual costs will vary by location, shop, and parts sourcing. Market values are based on available comp data and may not reflect your local market.</p>
+            <p className="text-[#3f3f46]">sendit scan is a convenience tool to help you filter listings faster — not financial advice. You assume all risk on purchase decisions.</p>
+          </div>
         </div>
       </div>
     </div>

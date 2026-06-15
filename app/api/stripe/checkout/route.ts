@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,14 +51,33 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    // Apply 25% off first month for affiliate referrals
+    // Apply discount based on referral type
     if (ref) {
-      const coupon = await stripe.coupons.create({
-        percent_off: 25,
-        duration: "once",
-        name: `25% off first month — ref:${ref}`,
-      });
-      sessionParams.discounts = [{ coupon: coupon.id }];
+      const sb = getSupabase();
+      const { data: affiliate } = await sb
+        .from("affiliates")
+        .select("id")
+        .eq("ref", ref)
+        .eq("active", true)
+        .maybeSingle();
+
+      if (affiliate) {
+        // Affiliate referral — 25% off
+        const coupon = await stripe.coupons.create({
+          percent_off: 25,
+          duration: "once",
+          name: `25% off first month — ref:${ref}`,
+        });
+        sessionParams.discounts = [{ coupon: coupon.id }];
+      } else {
+        // User referral — 10% off
+        const coupon = await stripe.coupons.create({
+          percent_off: 10,
+          duration: "once",
+          name: `10% off first month — ref:${ref}`,
+        });
+        sessionParams.discounts = [{ coupon: coupon.id }];
+      }
     } else {
       sessionParams.allow_promotion_codes = true;
     }

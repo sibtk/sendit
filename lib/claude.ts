@@ -64,13 +64,13 @@ function selectAndLabelPhotos(
 
   // Sort by priority — all DAMAGE photos come after the 4 corners
   selected.sort((a, b) => a.priority - b.priority);
-  return selected;
+  return selected.slice(0, 5);
 }
 
 // Downsize IAA image URLs for Claude analysis (saves ~75% on tokens)
 function downsizeUrl(url: string): string {
   if (url.includes("vis.iaai.com/resizer")) {
-    return url.replace(/width=\d+&height=\d+/, "width=1280&height=960");
+    return url.replace(/width=\d+&height=\d+/, "width=1024&height=768");
   }
   return url;
 }

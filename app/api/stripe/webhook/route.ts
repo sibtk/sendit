@@ -45,11 +45,37 @@ export async function POST(request: NextRequest) {
           stripe_subscription_id: subscriptionId,
         };
 
-        // Track affiliate referral
+        // Track referral — affiliate or user
         const ref = session.metadata?.ref;
         if (ref) {
           updateData.referred_by = ref;
           updateData.referral_date = new Date().toISOString();
+
+          // Check if this is an affiliate or a user referral
+          const { data: affiliate } = await sb
+            .from("affiliates")
+            .select("id")
+            .eq("ref", ref)
+            .maybeSingle();
+
+          if (!affiliate) {
+            // User referral — increment referrer's count
+            const { data: referrer } = await sb
+              .from("user_profiles")
+              .select("id, referral_count, free_months_earned")
+              .eq("referral_code", ref)
+              .maybeSingle();
+
+            if (referrer) {
+              const newCount = (referrer.referral_count || 0) + 1;
+              const newFreeMonths = Math.floor(newCount / 3);
+              await sb.from("user_profiles").update({
+                referral_count: newCount,
+                free_months_earned: newFreeMonths,
+              }).eq("id", referrer.id);
+              console.log(`User referral: ${ref} now has ${newCount} referrals (${newFreeMonths} free months)`);
+            }
+          }
         }
 
         await sb.from("user_profiles").update(updateData).eq("id", userId);

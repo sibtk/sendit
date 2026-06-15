@@ -3,14 +3,35 @@
 import { useState, useEffect } from "react";
 import { UserSettings, loadSettings, saveSettings, DEFAULT_SETTINGS } from "@/lib/settings";
 import { REPAIR_PROFILES, RepairProfile } from "@/lib/types";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export default function SettingsPage() {
+  const { user } = useAuth();
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referralCount, setReferralCount] = useState(0);
+  const [freeMonthsAvailable, setFreeMonthsAvailable] = useState(0);
+  const [progressToNext, setProgressToNext] = useState(0);
+  const [referralCopied, setReferralCopied] = useState(false);
+  const [redeeming, setRedeeming] = useState(false);
 
   useEffect(() => {
     setSettings(loadSettings());
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch(`/api/referral?userId=${user.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.code) setReferralCode(data.code);
+        setReferralCount(data.referralCount || 0);
+        setFreeMonthsAvailable(data.freeMonthsAvailable || 0);
+        setProgressToNext(data.progressToNext || 0);
+      })
+      .catch(() => {});
+  }, [user]);
 
   function update(patch: Partial<UserSettings>) {
     setSettings((prev) => ({ ...prev, ...patch }));
@@ -260,6 +281,75 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+        {/* Refer Friends */}
+        {user && referralCode && (
+          <section>
+            <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-white/20 mb-4">Refer Friends</h2>
+            <div className="rounded-lg border border-white/[0.06] px-4 py-4 space-y-4">
+              <div>
+                <label className={labelClass}>Your link</label>
+                <div className="flex gap-2">
+                  <div className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-[13px] text-[#7dd3fc]/70 mono truncate">
+                    senditscan.com?ref={referralCode}
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`https://senditscan.com?ref=${referralCode}`);
+                      setReferralCopied(true);
+                      setTimeout(() => setReferralCopied(false), 1500);
+                    }}
+                    className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-[12px] text-white/40 hover:text-white/60 transition-all shrink-0"
+                  >
+                    {referralCopied ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <div className="text-[12px] text-white/40 mb-2">
+                  Invite 3 friends to subscribe, get a free month. Your friends get 10% off.
+                </div>
+                <div className="w-full h-2 rounded-full bg-white/[0.04] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[#7dd3fc]/50 transition-all"
+                    style={{ width: `${(progressToNext / 3) * 100}%` }}
+                  />
+                </div>
+                <div className="text-[11px] text-white/20 mt-1.5">
+                  {progressToNext}/3 paid friends{referralCount > 0 ? ` · ${referralCount} total referrals` : ""}
+                </div>
+              </div>
+              {freeMonthsAvailable > 0 && (
+                <div className="flex items-center justify-between rounded-lg border border-green-500/20 bg-green-500/[0.04] px-3 py-2.5">
+                  <span className="text-[13px] text-green-400">
+                    {freeMonthsAvailable} free month{freeMonthsAvailable > 1 ? "s" : ""} available
+                  </span>
+                  <button
+                    onClick={async () => {
+                      if (!user) return;
+                      setRedeeming(true);
+                      try {
+                        const res = await fetch("/api/referral", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ userId: user.id, action: "redeem" }),
+                        });
+                        if (res.ok) {
+                          setFreeMonthsAvailable((p) => p - 1);
+                        }
+                      } catch {}
+                      setRedeeming(false);
+                    }}
+                    disabled={redeeming}
+                    className="rounded-lg bg-green-500/20 px-3 py-1.5 text-[12px] font-medium text-green-400 hover:bg-green-500/30 transition-all disabled:opacity-50"
+                  >
+                    {redeeming ? "..." : "Redeem"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* Account */}
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-white/20 mb-4">Account</h2>
