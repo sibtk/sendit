@@ -146,7 +146,8 @@ export async function analyzeVehicle(params: {
   // Build message content with labeled photos
   const content: Anthropic.MessageCreateParams["messages"][0]["content"] = [];
 
-  // Select photos by label — gets all 4 corners + all damage photos
+  // Select photos by label — gets all 4 corners + damage photo
+  const t0 = Date.now();
   const labeledPhotos = selectAndLabelPhotos(listing.imageUrls || [], listing.imageLabels);
   const photoResults = await Promise.all(
     labeledPhotos.map(async (lp) => ({
@@ -154,6 +155,7 @@ export async function analyzeVehicle(params: {
       image: await fetchImageAsBase64(lp.url),
     }))
   );
+  console.log(`[TIMING] Photo download: ${Date.now() - t0}ms (${labeledPhotos.length} photos)`);
 
   let photosAdded = 0;
   const photoLabels: string[] = [];
@@ -197,6 +199,7 @@ CRITICAL: Check the REAR of the car carefully. Missing rear bumpers, tail light 
     text: finalPrompt,
   });
 
+  const tClaude = Date.now();
   const response = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 8192,
@@ -209,6 +212,7 @@ CRITICAL: Check the REAR of the car carefully. Missing rear bumpers, tail light 
       },
     ],
   });
+  console.log(`[TIMING] Claude API call: ${Date.now() - tClaude}ms`);
 
   // Extract text from response
   const textBlock = response.content.find((block) => block.type === "text");
