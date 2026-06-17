@@ -211,14 +211,14 @@ function LiveAnalysis() {
 
     startStream();
 
-    // Timeout — if analysis takes longer than 50s, show traffic message
+    // Timeout — if analysis takes longer than 75s, show traffic message
     const timeout = setTimeout(() => {
       if (phase === "progress") {
         controller.abort();
         setError("Connection lost");
         setPhase("error");
       }
-    }, 50000);
+    }, 75000);
 
     return () => { controller.abort(); clearTimeout(timeout); };
   }, [searchParams, router]);

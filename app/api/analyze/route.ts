@@ -204,32 +204,7 @@ export async function POST(request: NextRequest) {
             // SEND: listing data (photos, vehicle info, fees, shipping)
             send("listing", { listing, fees: streamFees, shipping: streamShipping });
 
-            // Fire comps in background
-            const compsPromise = getAuctionComps(listing.year, listing.make, listing.model, listing.trim)
-              .catch(() => null);
-            const retailPromise = getRetailComps(listing.year, listing.make, listing.model, body.userZip || "77001", listing.trim)
-              .catch(() => null);
-
-            // VIN decode + recalls in parallel
-            const [vinDecodeResult, recallsResult] = await Promise.allSettled([
-              listing.vin && !listing.vinMasked ? decodeVin(listing.vin) : Promise.resolve(null),
-              listing.make && listing.model && listing.year ? getRecalls(listing.make, listing.model, listing.year) : Promise.resolve([]),
-            ]);
-
-            let vinDecode: VinDecode | null = vinDecodeResult.status === "fulfilled" ? vinDecodeResult.value : null;
-            const recalls = recallsResult.status === "fulfilled" ? recallsResult.value : [];
-
-            if (vinDecode) {
-              if (vinDecode.hp && !listing.hp) listing.hp = vinDecode.hp;
-              if (vinDecode.trim && !listing.trim) listing.trim = vinDecode.trim;
-              if (vinDecode.bodyClass && !listing.bodyStyle) listing.bodyStyle = vinDecode.bodyClass;
-            }
-
-            console.log(`[TIMING] VIN decode: ${Date.now() - t0}ms`);
-            // SEND: VIN data
-            send("vin", { vinDecode, listing });
-
-            // Build damage notes (without comps — Claude starts NOW, comps applied server-side later)
+            // Build damage notes from what we have NOW — don't wait for VIN/price
             let damageNotes = body.damageNotes || null;
             if (!effectiveBid) {
               damageNotes = (damageNotes || "") + "\n\nNOTE: No bid amount was available from the listing. Estimate a reasonable bid based on the vehicle's condition, market value, and damage level.";
@@ -238,42 +213,64 @@ export async function POST(request: NextRequest) {
               damageNotes = (damageNotes || "") + "\n\nNOTE: Shipping cost could not be estimated.";
             }
 
-            // Price DB — quick lookup, include in Claude prompt if available
-            const vehicleMake = vinDecode?.make || listing.make;
-            const vehicleModel = vinDecode?.model || listing.model;
-            const vehicleYear = vinDecode?.year || listing.year;
-            const vehicleTrim = vinDecode?.trim || listing.trim;
-            let priceData = null;
-            try {
-              priceData = await getPriceData(vehicleYear, vehicleMake, vehicleModel, vehicleTrim);
-              if (!priceData && vehicleTrim) priceData = await getPriceData(vehicleYear, vehicleMake, vehicleModel);
-            } catch {}
-            if (!priceData) queueScrape(vehicleYear, vehicleMake, vehicleModel, vehicleTrim).catch(() => {});
-            if (priceData) {
-              damageNotes = (damageNotes || "") + `\n\nMARKET DATA (from ${priceData.sample_count} real listings):\nMedian: $${priceData.median_price.toLocaleString()} | Range: $${priceData.price_low.toLocaleString()}-$${priceData.price_high.toLocaleString()}\nUSE THESE NUMBERS for market value.`;
-            }
+            // FIRE EVERYTHING IN PARALLEL — Claude, VIN, recalls, comps, price DB all at once
+            console.log(`[TIMING] Starting all parallel tasks: ${Date.now() - t0}ms`);
 
-            console.log(`[TIMING] Price DB done: ${Date.now() - t0}ms — starting Claude + comps in parallel`);
-            // Start Claude AND comps in PARALLEL — don't wait for comps before calling Claude
+            // Claude starts NOW with listing data only — no waiting for VIN/recalls/price
             const claudePromise = analyzeVehicle({
-              listing, vinDecode, recalls, fees: streamFees, shipping: streamShipping,
+              listing, vinDecode: null, recalls: [], fees: streamFees, shipping: streamShipping,
               repairProfile: body.repairProfile || "budget_shop",
               userBid: effectiveBid,
               userLocation: body.userLocation || "Houston, TX",
               damageNotes,
             });
 
-            // Wait for comps in parallel with Claude
-            let auctionComps: any = null;
-            let retailComps: any = null;
-            const compsSettled = Promise.allSettled([compsPromise, retailPromise]).then(([a, r]) => {
-              auctionComps = a.status === "fulfilled" ? a.value : null;
-              retailComps = r.status === "fulfilled" ? r.value : null;
-            }).catch(() => {});
+            // VIN, recalls, comps, price DB all run alongside Claude
+            const vinPromise = listing.vin && !listing.vinMasked ? decodeVin(listing.vin) : Promise.resolve(null);
+            const recallsPromise = listing.make && listing.model && listing.year ? getRecalls(listing.make, listing.model, listing.year) : Promise.resolve([]);
+            const compsPromise = getAuctionComps(listing.year, listing.make, listing.model, listing.trim).catch(() => null);
+            const retailPromise = getRetailComps(listing.year, listing.make, listing.model, body.userZip || "77001", listing.trim).catch(() => null);
+            const pricePromise = (async () => {
+              try {
+                let pd = await getPriceData(listing.year, listing.make, listing.model, listing.trim);
+                if (!pd && listing.trim) pd = await getPriceData(listing.year, listing.make, listing.model);
+                return pd;
+              } catch { return null; }
+            })();
 
-            // Wait for both Claude and comps
-            const [analysis] = await Promise.all([claudePromise, compsSettled]);
-            console.log(`[TIMING] Claude + comps done: ${Date.now() - t0}ms`);
+            // Wait for ALL parallel tasks
+            const [analysis, vinResult, recallsResult, compsResult, retailResult, priceResult] = await Promise.all([
+              claudePromise,
+              vinPromise.catch(() => null),
+              recallsPromise.catch(() => []),
+              compsPromise,
+              retailPromise,
+              pricePromise,
+            ]);
+
+            const vinDecode: VinDecode | null = vinResult || null;
+            const recalls = recallsResult || [];
+            const auctionComps = compsResult;
+            const retailComps = retailResult;
+            const priceData = priceResult;
+
+            // Enrich listing with VIN data
+            if (vinDecode) {
+              if (vinDecode.hp && !listing.hp) listing.hp = vinDecode.hp;
+              if (vinDecode.trim && !listing.trim) listing.trim = vinDecode.trim;
+              if (vinDecode.bodyClass && !listing.bodyStyle) listing.bodyStyle = vinDecode.bodyClass;
+            }
+
+            const vehicleMake = vinDecode?.make || listing.make;
+            const vehicleModel = vinDecode?.model || listing.model;
+            const vehicleYear = vinDecode?.year || listing.year;
+            const vehicleTrim = vinDecode?.trim || listing.trim;
+            if (!priceData) queueScrape(vehicleYear, vehicleMake, vehicleModel, vehicleTrim).catch(() => {});
+
+            // SEND: VIN data
+            send("vin", { vinDecode, listing });
+
+            console.log(`[TIMING] All parallel tasks done: ${Date.now() - t0}ms`);
 
             // SEND: comps data (arrived while Claude was working)
             send("comps", {
