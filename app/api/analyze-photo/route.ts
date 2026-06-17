@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     else if (contentType.includes("webp")) mediaType = "image/webp";
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-4-5-20250929",
       max_tokens: 500,
       temperature: 0,
       messages: [{

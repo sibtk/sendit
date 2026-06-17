@@ -67,10 +67,14 @@ function selectAndLabelPhotos(
   return selected.slice(0, 5);
 }
 
-// Downsize IAA image URLs for Claude analysis (saves ~75% on tokens)
+// Downsize image URLs for Claude analysis
 function downsizeUrl(url: string): string {
   if (url.includes("vis.iaai.com/resizer")) {
-    return url.replace(/width=\d+&height=\d+/, "width=1024&height=768");
+    return url.replace(/width=\d+&height=\d+/, "width=800&height=600");
+  }
+  // Copart images: replace _ful (full size 2576x1932) with _hrs (high res ~1200x900)
+  if (url.includes("cs.copart.com") && url.includes("_ful.")) {
+    return url.replace("_ful.", "_hrs.");
   }
   return url;
 }
@@ -201,7 +205,7 @@ CRITICAL: Check the REAR of the car carefully. Missing rear bumpers, tail light 
 
   const tClaude = Date.now();
   const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 8192,
     temperature: 0,
     system: systemPrompt,

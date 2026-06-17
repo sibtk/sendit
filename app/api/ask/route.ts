@@ -27,7 +27,7 @@ ${analysisContext ? `\nAnalysis context: ${analysisContext}` : ""}
 Question: ${question}`;
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-4-5-20250929",
       max_tokens: 300,
       temperature: 0,
       system: systemPrompt,
