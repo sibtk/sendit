@@ -20,6 +20,15 @@ interface Affiliate {
   payout: number;
 }
 
+interface UserActivity {
+  id: string;
+  email: string;
+  tier: string;
+  scans: number;
+  lastScan: string;
+  vehicles: string[];
+}
+
 interface Stats {
   users: { total: number; free: number; pro: number; dealer: number; mrr: number };
   scans: { total: number };
@@ -27,6 +36,8 @@ interface Stats {
   platforms: Record<string, number>;
   topVehicles: { name: string; count: number }[];
   training: { pending: number; approved: number; corrected: number; trashed: number };
+  userActivity: UserActivity[];
+  anonScans: number;
 }
 
 interface Analysis {
@@ -407,6 +418,46 @@ export default function AdminPage() {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* User Activity */}
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+            <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+              <div className="text-[11px] text-white/20 uppercase tracking-widest">
+                User Activity
+              </div>
+              <div className="text-[11px] text-white/20">
+                {stats.anonScans} anonymous visitors
+              </div>
+            </div>
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-white/[0.06]">
+                  <th className="text-left px-5 py-2.5 text-white/30 font-medium">User</th>
+                  <th className="text-left px-5 py-2.5 text-white/30 font-medium">Tier</th>
+                  <th className="text-right px-5 py-2.5 text-white/30 font-medium">Scans</th>
+                  <th className="text-left px-5 py-2.5 text-white/30 font-medium">Recent Vehicles</th>
+                  <th className="text-right px-5 py-2.5 text-white/30 font-medium">Last Scan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(stats.userActivity || []).map((u) => (
+                  <tr key={u.id} className="border-b border-white/[0.04]">
+                    <td className="px-5 py-3 text-white/60 text-[12px]">{u.email}</td>
+                    <td className="px-5 py-3">
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                        u.tier === "pro" ? "bg-[#7dd3fc]/10 text-[#7dd3fc]/60" :
+                        u.tier === "dealer" ? "bg-[#7dd3fc]/20 text-[#7dd3fc]" :
+                        "bg-white/[0.04] text-white/20"
+                      }`}>{u.tier}</span>
+                    </td>
+                    <td className="px-5 py-3 text-right mono text-white/40">{u.scans}</td>
+                    <td className="px-5 py-3 text-[11px] text-white/30 truncate max-w-[200px]">{u.vehicles.join(", ")}</td>
+                    <td className="px-5 py-3 text-right text-[11px] text-white/20">{new Date(u.lastScan).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

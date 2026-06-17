@@ -16,6 +16,7 @@ interface AddedPart {
 interface UserEdits {
   repairOverride: number | null;
   sellOverride: number | null;
+  sellHighOverride: number | null;
   partOverrides: Record<number, { low?: number; high?: number }>;
   laborHoursOverride: number | null;
   paintOverride: { low?: number; high?: number };
@@ -135,6 +136,7 @@ export default function AnalysisResults({
   const [sliderPrice, setSliderPrice] = useState(saved.sliderPrice ?? (a.financials.purchase || 0));
   const [repairOverride, setRepairOverride] = useState<number | null>(saved.repairOverride ?? null);
   const [sellOverride, setSellOverride] = useState<number | null>(saved.sellOverride ?? null);
+  const [sellHighOverride, setSellHighOverride] = useState<number | null>(saved.sellHighOverride ?? null);
   const [partOverrides, setPartOverrides] = useState<Record<number, { low?: number; high?: number }>>(saved.partOverrides ?? {});
   const [laborHoursOverride, setLaborHoursOverride] = useState<number | null>(saved.laborHoursOverride ?? null);
   const [paintOverride, setPaintOverride] = useState<{ low?: number; high?: number }>(saved.paintOverride ?? {});
@@ -206,10 +208,10 @@ export default function AnalysisResults({
   // Auto-save edits on any change
   const doSave = useCallback(() => {
     saveEdits(analysis.id, {
-      repairOverride, sellOverride, partOverrides,
+      repairOverride, sellOverride, sellHighOverride, partOverrides,
       laborHoursOverride, paintOverride, deletedParts, addedParts, noShipping, userNotes, sliderPrice,
     });
-  }, [analysis.id, repairOverride, sellOverride, partOverrides, laborHoursOverride, paintOverride, deletedParts, addedParts, noShipping, userNotes, sliderPrice]);
+  }, [analysis.id, repairOverride, sellOverride, sellHighOverride, partOverrides, laborHoursOverride, paintOverride, deletedParts, addedParts, noShipping, userNotes, sliderPrice]);
 
   useEffect(() => { doSave(); }, [doSave]);
 
@@ -238,7 +240,7 @@ export default function AnalysisResults({
   const effectiveRepairLow = repairOverride ?? (hasPartOverrides ? computedRepairLow : a.repairEstimate.total.low);
   const effectiveRepairHigh = repairOverride ?? (hasPartOverrides ? computedRepairHigh : a.repairEstimate.total.high);
   const effectiveSellLow = sellOverride ?? a.financials.salePrice.low;
-  const effectiveSellHigh = sellOverride ? Math.round(sellOverride * 1.1) : a.financials.salePrice.high;
+  const effectiveSellHigh = sellHighOverride ?? (sellOverride ? Math.round(sellOverride * 1.1) : a.financials.salePrice.high);
 
   // Recompute all downstream values using SLIDER price (not original Claude estimate)
   const feeRate = a.financials.purchase > 0
@@ -296,8 +298,8 @@ export default function AnalysisResults({
                   <div className="text-[8px] sm:text-[10px] uppercase tracking-[0.15em] text-[#52525b] mb-0.5 sm:mb-1">
                     Sell at
                   </div>
-                  <div className={`mono text-[13px] sm:text-xl font-bold truncate ${sellOverride ? "text-[#7dd3fc]" : "text-[#e4e4e7]"}`}>
-                    ${fmt(Math.round((effectiveSellLow + effectiveSellHigh) / 2))}
+                  <div className={`mono text-[13px] sm:text-xl font-bold truncate ${sellOverride || sellHighOverride ? "text-[#7dd3fc]" : "text-[#e4e4e7]"}`}>
+                    ${fmt(effectiveSellLow)}
                   </div>
                 </div>
 
@@ -1118,17 +1120,31 @@ export default function AnalysisResults({
             </div>
             <div className="flex justify-between items-center py-3">
               <span className="text-[14px] font-semibold text-[#e4e4e7]">SELL AT</span>
-              <input
-                type="number"
-                value={sellOverride ?? ""}
-                onChange={(e) => setSellOverride(e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder={`${fmt(effectiveSellLow)} - ${fmt(effectiveSellHigh)}`}
-                className={`w-32 sm:w-44 rounded-lg border border-dashed bg-transparent px-2 sm:px-3 py-1.5 text-right mono text-[13px] sm:text-[15px] font-semibold transition-all focus:outline-none ${
-                  sellOverride !== null
-                    ? "border-[#7dd3fc]/30 text-[#7dd3fc]"
-                    : "border-white/[0.1] text-[#e4e4e7] placeholder-[#e4e4e7]/50 hover:border-white/[0.2]"
-                }`}
-              />
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  value={sellOverride ?? ""}
+                  onChange={(e) => setSellOverride(e.target.value ? parseFloat(e.target.value) : null)}
+                  placeholder={fmt(a.financials.salePrice.low)}
+                  className={`w-20 sm:w-24 rounded-lg border border-dashed bg-transparent px-2 py-1.5 text-right mono text-[13px] sm:text-[15px] font-semibold transition-all focus:outline-none ${
+                    sellOverride !== null
+                      ? "border-[#7dd3fc]/30 text-[#7dd3fc]"
+                      : "border-white/[0.1] text-[#e4e4e7] placeholder-[#e4e4e7]/50 hover:border-white/[0.2]"
+                  }`}
+                />
+                <span className="text-white/20 text-[13px]">-</span>
+                <input
+                  type="number"
+                  value={sellHighOverride ?? ""}
+                  onChange={(e) => setSellHighOverride(e.target.value ? parseFloat(e.target.value) : null)}
+                  placeholder={fmt(a.financials.salePrice.high)}
+                  className={`w-20 sm:w-24 rounded-lg border border-dashed bg-transparent px-2 py-1.5 text-right mono text-[13px] sm:text-[15px] font-semibold transition-all focus:outline-none ${
+                    sellHighOverride !== null
+                      ? "border-[#7dd3fc]/30 text-[#7dd3fc]"
+                      : "border-white/[0.1] text-[#e4e4e7] placeholder-[#e4e4e7]/50 hover:border-white/[0.2]"
+                  }`}
+                />
+              </div>
             </div>
 
             {/* Profit line — the star */}
