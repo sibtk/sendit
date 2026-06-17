@@ -434,19 +434,20 @@ export async function POST(request: NextRequest) {
               createdAt: new Date().toISOString(),
             };
 
-            // Save + log — fire and forget, don't await
-            logUsage(userId, fingerprint, body.url || "").catch(() => {});
+            // Save + log — MUST await before stream closes or serverless kills it
+            await logUsage(userId, fingerprint, body.url || "").catch(() => {});
             const serviceClient = createClient(
               process.env.NEXT_PUBLIC_SUPABASE_URL || "",
               process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
             );
-            serviceClient.from("saved_analyses").insert({
+            const { error: saveError } = await serviceClient.from("saved_analyses").insert({
               id: fullAnalysis.id, user_id: userId || null,
               platform: listing.platform, lot_number: listing.lotNumber, url: listing.url,
               listing_data: fullAnalysis, analysis_result: analysis,
               repair_profile: body.repairProfile || "budget_shop",
               user_location: body.userLocation || "Houston, TX",
-            }).then(({ error }) => { if (error) console.error("Failed to save analysis:", error); });
+            });
+            if (saveError) console.error("Failed to save analysis:", saveError);
 
             trackAnalysis({
               userId, fingerprint, platform: listing.platform,
