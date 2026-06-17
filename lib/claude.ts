@@ -64,7 +64,7 @@ function selectAndLabelPhotos(
 
   // Sort by priority — all DAMAGE photos come after the 4 corners
   selected.sort((a, b) => a.priority - b.priority);
-  return selected.slice(0, 5);
+  return selected.slice(0, 4);
 }
 
 // Downsize image URLs for Claude analysis
@@ -208,7 +208,13 @@ CRITICAL: Check the REAR of the car carefully. Missing rear bumpers, tail light 
     model: "claude-sonnet-4-5-20250929",
     max_tokens: 8192,
     temperature: 0,
-    system: systemPrompt,
+    system: [
+      {
+        type: "text",
+        text: systemPrompt,
+        cache_control: { type: "ephemeral" },
+      },
+    ],
     messages: [
       {
         role: "user",
