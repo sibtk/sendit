@@ -21,9 +21,8 @@ async function fetchWithFallback(url: string): Promise<Response> {
     if (text.includes("Incapsula") || text.includes("_Incapsula_Resource") || !text.startsWith("{")) {
       console.log("Copart: Incapsula blocked, falling back to ScraperAPI");
       if (!SCRAPER_API_KEY) throw new Error("Copart blocked by Incapsula and no ScraperAPI key configured");
-      // Use render=true for lot details (needs JS), render=false for images (plain JSON)
-      const needsRender = !url.includes("lotImages");
-      const scraperUrl = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}${needsRender ? "&render=true" : ""}`;
+      // No render needed — Copart API returns JSON, we just need proxy to bypass Incapsula
+      const scraperUrl = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}&keep_headers=true`;
       const fallback = await fetch(scraperUrl);
       if (!fallback.ok) throw new Error(`ScraperAPI returned ${fallback.status}`);
       const fallbackText = await fallback.text();
