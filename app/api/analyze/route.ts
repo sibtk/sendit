@@ -17,7 +17,7 @@ import { trackAnalysis } from "@/lib/analytics";
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   try {
