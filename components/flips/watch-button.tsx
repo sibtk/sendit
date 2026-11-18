@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { watchAnalysis, getFlipByAnalysisId, removeFlip } from "@/lib/flips";
-import { createBrowserClient } from "@/lib/auth";
 import { FullAnalysis, Flip } from "@/lib/types";
 
 export default function WatchButton({
@@ -14,18 +13,14 @@ export default function WatchButton({
   analysisId: string;
   analysis: FullAnalysis;
 }) {
-  const { user } = useAuth();
+  const { user, tier } = useAuth();
   const router = useRouter();
   const [flip, setFlip] = useState<Flip | null>(null);
-  const [tier, setTier] = useState<string>("free");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     getFlipByAnalysisId(user.id, analysisId).then(setFlip);
-    const supabase = createBrowserClient();
-    supabase.from("user_profiles").select("tier").eq("id", user.id).maybeSingle()
-      .then(({ data }) => { if (data?.tier) setTier(data.tier); });
   }, [user, analysisId]);
 
   const isPaid = tier === "pro" || tier === "dealer";
@@ -35,6 +30,8 @@ export default function WatchButton({
       router.push("/login");
       return;
     }
+    // tier still resolving — don't bounce a paid user to /pricing
+    if (tier === null) return;
     if (!isPaid) {
       router.push("/pricing");
       return;
